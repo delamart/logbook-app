@@ -64,22 +64,36 @@ class OCREngine:
     Return ONLY raw JSON. No markdown. Array key 'entries'.
     """
 
-    def process_image(self, image_path: str, prompt_override: str = None):
+    
+    def get_available_models(self):
+        """
+        Fetches available Gemini models that support content generation.
+        """
+        try:
+            models = []
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods and 'gemini' in m.name:
+                    models.append(m.name)
+            return sorted(models, reverse=True) # Newest first usually
+        except Exception as e:
+            print(f"Error fetching models: {e}")
+            return ["models/gemini-2.0-flash"] # Fallback
+
+    def process_image(self, image_path: str, prompt_override: str = None, model_name: str = "models/gemini-2.0-flash"):
         """
         Sends the image to Google Gemini to extract logbook entries.
-        Uses advanced caching: Cache Key = MD5(ImageFileHash + PromptHash).
+        Uses advanced caching: Cache Key = MD5(ImageFileHash + PromptHash + ModelName).
         """
-        print(f"Processing: {image_path}")
+        print(f"Processing: {image_path} with model: {model_name}")
         
         # Determine Prompt
         prompt = prompt_override if prompt_override else self.DEFAULT_PROMPT
         
         # Calculate Cache Key
-        # We assume image_path is unique per content (enforced by main.py upload handler)
-        # But to be safe/explicit, we can re-hash or just use the filename.
-        # Let's use the image filename as the image id, and hash the prompt.
         image_id = os.path.basename(image_path)
-        prompt_hash = hashlib.md5(prompt.encode('utf-8')).hexdigest()
+        # Include model name in hash so different models have different caches
+        cache_key_content = f"{prompt}{model_name}"
+        prompt_hash = hashlib.md5(cache_key_content.encode('utf-8')).hexdigest()
         
         cache_filename = f"{image_id}.{prompt_hash}.json"
         cache_path = os.path.join(os.path.dirname(image_path), cache_filename)
@@ -88,7 +102,7 @@ class OCREngine:
         
         raw_data = None
         
-        # 1. Check Cache (Always check, since key is unique to prompt)
+        # 1. Check Cache
         if os.path.exists(cache_path):
             print("Using Cached Response (No API Cost)")
             try:
@@ -105,10 +119,12 @@ class OCREngine:
         # 2. Call API if no cache
         if not raw_data:
             try:
-                print("Calling Gemini API...")
+                print(f"Calling Gemini API ({model_name})...")
                 img = Image.open(image_path)
                 
-                response = self.model.generate_content([prompt, img])
+                # Use specified model
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content([prompt, img])
                 
                 # Clean response
                 text_response = response.text.strip()
@@ -128,20 +144,18 @@ class OCREngine:
                     elif not isinstance(cache_data, dict):
                         cache_data = {"entries": [], "raw_content": str(raw_data)}
                         
-                    # Inject prompt
+                    # Inject metadata
                     cache_data['_debug_prompt'] = prompt
+                    cache_data['_meta'] = {"model": model_name}
                     
                     # Save Cache
                     with open(cache_path, "w") as f:
                         json.dump(cache_data, f, indent=2)
                         
-                    # Use the data we just parsed (or cache_data if we wrapped it)
-                    # Use cache_data to ensure downstream sees the same structure if we wrapped it
                     raw_data = cache_data
                     
                 except json.JSONDecodeError:
                     print(f"Warning: Gemini returned invalid JSON: {text_response}")
-                    # Save raw text so we can debug
                     with open(cache_path + ".err", "w") as f:
                         f.write(text_response)
                     return [], {"error": "Invalid JSON from AI"}
@@ -151,7 +165,6 @@ class OCREngine:
             except Exception as e:
                 error_msg = str(e)
                 print(f"Gemini Error: {error_msg}")
-                # Return tuple with error
                 return [], {"error": error_msg}
 
         # 4. Process Data

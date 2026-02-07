@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}My Logbook - Logbook Scanner Pro{% endblock %}
+{% block page_title %}My Logbook{% endblock %}
+{% block body_class %}page-logbook{% endblock %}
+
+{% block content %}
+<div class="card" id="logbook">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- Filters -->
+            <select id="time-filter" onchange="setTimeFilter(this.value)"
+                style="padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+                <option value="all">All Time</option>
+                <option value="12">Last 12 Months</option>
+                <option value="3">Last 3 Months</option>
+            </select>
+            <input type="text" id="filter-input" placeholder="🔍 Filter..." onkeyup="filterEntries()"
+                style="width: 200px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; background: var(--bg); color: var(--text);">
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="secondary" onclick="addEntry()">Add Entry</button>
+            <button onclick="deleteAllEntries()" style="background: var(--danger);">Delete All</button>
+        </div>
+    </div>
+    <div class="table-container">
+        <table id="master-table">
+            <thead>
+                <tr>
+                    <th style="min-width: 90px; cursor: pointer;" onclick="sortBy('date')">Date ⬍</th>
+                    <th onclick="sortBy('departure_place')" style="cursor: pointer;">Depart ⬍</th>
+                    <th onclick="sortBy('arrival_place')" style="cursor: pointer;">Arrive ⬍</th>
+                    <th onclick="sortBy('aircraft_registration')" style="cursor: pointer;">Aircraft ⬍</th>
+                    <th onclick="sortBy('single_pilot_se')" style="cursor: pointer;">SE ⬍</th>
+                    <th onclick="sortBy('single_pilot_me')" style="cursor: pointer;">ME ⬍</th>
+                    <th onclick="sortBy('multi_pilot')" style="cursor: pointer;">Multi ⬍</th>
+                    <th onclick="sortBy('total_flight_time')" style="cursor: pointer;">Total ⬍</th>
+                    <th onclick="sortBy('name_pic')" style="cursor: pointer;">PIC Name ⬍</th>
+                    <th onclick="sortBy('landings_day')" style="cursor: pointer;">Ldgs ⬍</th>
+                    <th onclick="sortBy('time_night')" style="cursor: pointer;">Night ⬍</th>
+                    <th onclick="sortBy('time_ifr')" style="cursor: pointer;">IFR ⬍</th>
+                    <th onclick="sortBy('time_pic')" style="cursor: pointer;">PIC ⬍</th>
+                    <th onclick="sortBy('time_copi')" style="cursor: pointer;">Copi ⬍</th>
+                    <th onclick="sortBy('time_dual')" style="cursor: pointer;">Dual ⬍</th>
+                    <th onclick="sortBy('time_instructor')" style="cursor: pointer;">Instr ⬍</th>
+                    <th onclick="sortBy('remarks')" style="cursor: pointer;">Remarks ⬍</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="master-tbody">
+                <tr>
+                    <td colspan="18" style="text-align: center; color: var(--text-light);">Loading entries...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

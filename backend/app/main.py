@@ -37,17 +37,39 @@ templates = Jinja2Templates(directory="frontend/templates")
 
 @app.get("/")
 def read_root(request: Request):
-    return templates.TemplateResponse(request, "index.html")
+    return templates.TemplateResponse(request, "dashboard.html", {"request": request, "page": "dashboard"})
+
+@app.get("/dashboard")
+def read_dashboard(request: Request):
+    return templates.TemplateResponse(request, "dashboard.html", {"request": request, "page": "dashboard"})
+
+@app.get("/logbook")
+def read_logbook(request: Request):
+    return templates.TemplateResponse(request, "logbook.html", {"request": request, "page": "logbook"})
+
+@app.get("/map")
+def read_map(request: Request):
+    return templates.TemplateResponse(request, "map.html", {"request": request, "page": "map"})
+
+@app.get("/tools")
+def read_tools(request: Request):
+    return templates.TemplateResponse(request, "tools.html", {"request": request, "page": "tools"})
 
 @app.get("/prompt")
 def get_prompt():
     """Returns the current default prompt used by the AI."""
     return {"prompt": ocr_engine.DEFAULT_PROMPT}
 
+@app.get("/api/models")
+def get_models():
+    """Returns a list of available Gemini models."""
+    return {"models": ocr_engine.get_available_models()}
+
 @app.post("/upload/")
 async def upload_image(
     file: UploadFile = File(...), 
-    custom_prompt: Optional[str] = Form(None)
+    custom_prompt: Optional[str] = Form(None),
+    model: Optional[str] = Form("models/gemini-2.0-flash")
 ):
     # Read file content to calculate hash
     content = await file.read()
@@ -66,14 +88,19 @@ async def upload_image(
         with open(file_location, "wb+") as file_object:
             file_object.write(content)
     
-    # Process image with optional prompt override
-    extracted_data, raw_json = ocr_engine.process_image(file_location, prompt_override=custom_prompt)
+    # Process image with optional prompt override and selected model
+    extracted_data, raw_json = ocr_engine.process_image(
+        file_location, 
+        prompt_override=custom_prompt,
+        model_name=model
+    )
     
     # Return extracted data WITHOUT saving to DB yet
     return {
         "info": f"file processed (hash: {file_hash})", 
         "extracted_entries": extracted_data,
-        "raw_json": raw_json
+        "raw_json": raw_json,
+        "model_used": model
     }
 
 from typing import List
@@ -248,40 +275,63 @@ async def import_foreflight_csv(file: UploadFile = File(...)):
         # 2. Find section start for Flights Table
         start_index = 0
         found_table = False
-        for i, line in enumerate(lines):
-            # ForeFlight exports usually have "Flights Table" before the header
-            if line.strip().startswith("Flights Table"):
-                start_index = i + 1 # Header is the next line
-                found_table = True
-                break
         
-        # Fallback for simple CSVs or different formats
+        # Scan for "Flights Table", then scan for the actual header
+        flights_table_found = False
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith("Flights Table"):
+                flights_table_found = True
+                continue # Header should be after this
+            
+            if flights_table_found:
+                # Look for the header line
+                if "Date" in stripped and "AircraftID" in stripped:
+                    start_index = i
+                    found_table = True
+                    print(f"DEBUG: Found Header at line {i}: {line}")
+                    break
+        
+        # Fallback for simple CSVs (no "Flights Table" marker)
         if not found_table:
-             # Try to find the header row by looking for key columns
-             for i, line in enumerate(lines[:20]): # Check first 20 lines
+             for i, line in enumerate(lines[:20]):
                  if "Date" in line and "AircraftID" in line:
                      start_index = i
                      found_table = True
                      break
                  
-             if not found_table:
-                 return {"message": "Invalid ForeFlight CSV: Could not find 'Flights Table' or valid headers.", "error": True}
+        if not found_table:
+             return {"message": "Invalid ForeFlight CSV: Could not find 'Flights Table' or valid headers.", "error": True}
 
         # Parse CSV from the identified start
+        # limit to just this table? We should stop if we hit another empty line or table?
+        # DictReader doesn't stop automatically. We need to handle this in loop.
+        
         csv_text = "\n".join(lines[start_index:])
+        # Use register_dialect or just standard? ForeFlight is standard CSV usually.
         csv_reader = csv.DictReader(io.StringIO(csv_text))
         
         print(f"DEBUG: CSV Headers: {csv_reader.fieldnames}")
 
         entries = []
         for row in csv_reader:
-            if not row.get('Date') or not row.get('Date').strip():
+            # Check for end of table (empty Date or new table header)
+            raw_date = row.get('Date')
+            if not raw_date:
+                # Could be empty line or end of table
                 continue
+                
+            raw_date = raw_date.strip()
+            if not raw_date or "Table" in raw_date:
+                # Stop parsing if we hit "Expenses Table" or similar
+                print(f"DEBUG: Stopping at line: {row}")
+                break
 
             def parse_duration(val):
                 """Converts 'HH:MM' string to float hours."""
                 if not val: return 0.0
-                val = val.strip()
+                if isinstance(val, str):
+                    val = val.strip()
                 if not val: return 0.0
                 try:
                     if ':' in val:
@@ -294,20 +344,24 @@ async def import_foreflight_csv(file: UploadFile = File(...)):
                 except:
                     return 0.0
 
+            # Helper to safely get string
+            def get_str(key):
+                val = row.get(key)
+                return val.strip() if val else ''
+
             # ForeFlight Header Mappings
-            # Note: "LandingsAll" is often "DayLandingsFullStop" + "NightLandingsFullStop"
-            day_ldgs = int(parse_duration(row.get('DayLandingsFullStop') or row.get('LandingsDay') or '0'))
-            night_ldgs = int(parse_duration(row.get('NightLandingsFullStop') or row.get('LandingsNight') or '0'))
-            all_ldgs = int(parse_duration(row.get('AllLandings') or '0'))
+            day_ldgs = int(parse_duration(row.get('DayLandingsFullStop') or row.get('LandingsDay')))
+            night_ldgs = int(parse_duration(row.get('NightLandingsFullStop') or row.get('LandingsNight')))
+            all_ldgs = int(parse_duration(row.get('AllLandings')))
             
             if day_ldgs == 0 and night_ldgs == 0 and all_ldgs > 0:
                 day_ldgs = all_ldgs
 
             # TimeOut/In are usually HH:MM
-            dep_time = row.get('TimeOut', '').strip()
-            arr_time = row.get('TimeIn', '').strip()
+            dep_time = get_str('TimeOut')
+            arr_time = get_str('TimeIn')
             
-            reg = row.get('AircraftID')
+            reg = get_str('AircraftID')
             ac_info = aircraft_map.get(reg, {'code': '', 'class': ''})
             model_code = ac_info['code']
             ac_class = ac_info['class']
@@ -321,48 +375,59 @@ async def import_foreflight_csv(file: UploadFile = File(...)):
             mp_time = 0.0
             
             # Check for multi-pilot first (Logbook rules may vary, simplified logic here)
-            # If SIC time exists, assume Multi Pilot Operation? Or checking boolean columns?
-            # ForeFlight doesn't strictly enforce "Multi Pilot" column usage often.
+            # If SIC time exists, assume Multi Pilot? 
+            # Or use "aircraftClass" from mapping.
             
-            if 'multi' in ac_class or 'me' in ac_class:
+            sic_time = parse_duration(row.get('SIC'))
+            pic_time = parse_duration(row.get('PIC'))
+            
+            if sic_time > 0:
+                 mp_time = total_time # Simplified assumption
+            elif "multi" in ac_class:
                  me_time = total_time
             else:
                  se_time = total_time
 
-            entry = LogEntry(
-                date=row.get('Date'),
-                aircraft_registration=reg,
-                aircraft_model=model_code, # Set mapped type code
-                departure_place=row.get('From'),
-                arrival_place=row.get('To'),
+            entries.append(LogEntry(
+                date=raw_date,
+                departure_place=get_str('From'),
                 departure_time=dep_time,
+                arrival_place=get_str('To'),
                 arrival_time=arr_time,
+                aircraft_model=model_code,
+                aircraft_registration=reg,
+                
+                # Times
                 total_flight_time=total_time,
                 single_pilot_se=se_time,
                 single_pilot_me=me_time,
                 multi_pilot=mp_time,
-                name_pic="SELF", 
-                # Derive Day time
-                time_day=parse_duration(row.get('Day', '0')) if parse_duration(row.get('Night', '0')) == 0 else (parse_duration(row.get('TotalTime', '0')) - parse_duration(row.get('Night', '0')) if parse_duration(row.get('TotalTime')) else 0),
-                time_night=parse_duration(row.get('Night')),
-                time_ifr=parse_duration(row.get('ActualInstrument')),
-                time_pic=parse_duration(row.get('PIC')),
-                time_copi=parse_duration(row.get('SIC')),
-                time_dual=parse_duration(row.get('DualReceived')),
-                time_instructor=parse_duration(row.get('Instructor')),
+                
+                name_pic=get_str('PIC'), 
+                
                 landings_day=day_ldgs,
                 landings_night=night_ldgs,
-                remarks=row.get('PilotComments') or row.get('Comments') or row.get('Remarks', ''),
-                created_at=str(date.today())
-            )
-            entries.append(entry)
+                
+                time_night=parse_duration(row.get('Night')),
+                time_ifr=parse_duration(row.get('ActualInstrument')), # + SimulatedInstrument?
+                
+                time_pic=pic_time,
+                time_copi=sic_time,
+                time_dual=parse_duration(row.get('DualReceived')),
+                time_instructor=parse_duration(row.get('DualGiven')),
+                
+                remarks=get_str('Comments') or get_str('PilotComments') or get_str('Remarks')
+            ))
+
+        # Return entries for preview (Frontend will use showValidation)
+        # Convert LogEntry objects to dicts
+        entries_data = [entry.model_dump() for entry in entries]
         
-        with Session(engine) as session:
-            for e in entries:
-                session.add(e)
-            session.commit()
-        
-        return {"message": f"Successfully imported {len(entries)} entries from ForeFlight CSV."}
+        return {
+            "extract_count": len(entries),
+            "extracted_entries": entries_data,
+            "raw_json": {"csv_headers": csv_reader.fieldnames, "sample_row": entries_data[0] if entries_data else {}}
+        }
 
     except Exception as e:
         import traceback

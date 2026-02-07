@@ -1,0 +1,47 @@
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="ri-flight-takeoff-line" style="font-size: 1.4rem; color: var(--primary);"></i>
+            Logbook <span class="version">v2.0</span>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <ul>
+            <li>
+                <a href="/dashboard" class="{% if page == 'dashboard' %}active{% endif %}">
+                    <i class="ri-dashboard-line icon"></i>
+                    Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="/logbook" class="{% if page == 'logbook' %}active{% endif %}">
+                    <i class="ri-book-open-line icon"></i>
+                    My Logbook
+                </a>
+            </li>
+            <li>
+                <a href="/map" class="{% if page == 'map' %}active{% endif %}">
+                    <i class="ri-map-2-line icon"></i>
+                    Map
+                </a>
+            </li>
+            <li>
+                <a href="/tools" class="{% if page == 'tools' %}active{% endif %}">
+                    <i class="ri-tools-line icon"></i>
+                    Tools & Import
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="avatar">P</div>
+            <div class="details">
+                <span class="name">Pilot</span>
+                <span class="role">Free Plan</span>
+            </div>
+        </div>
+    </div>
+</aside>

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Logbook Scanner Pro{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block body_class %}page-dashboard{% endblock %}
+
+{% block content %}
+<div style="display: grid; gap: 24px;">
+    <!-- Stats Panel -->
+    <div class="card" id="stats-panel">
+        <h3 style="margin-bottom: 15px;">📊 Quick Stats</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <!-- Total Hours -->
+            <div style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <div style="color: var(--text-light); font-size: 0.85rem; margin: 0 0 5px 0;">Total Flight Time</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);" id="stat-total-time">Loading...
+                </div>
+            </div>
+            <!-- Total Landings -->
+            <div style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <div style="color: var(--text-light); font-size: 0.85rem; margin: 0 0 5px 0;">Total Landings</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);" id="stat-landings">-</div>
+            </div>
+            <!-- PIC Time -->
+            <div style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <div style="color: var(--text-light); font-size: 0.85rem; margin: 0 0 5px 0;">PIC Time</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #8b5cf6;" id="stat-pic-time">-</div>
+            </div>
+            <!-- Unique Aircraft -->
+            <div style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <div style="color: var(--text-light); font-size: 0.85rem; margin: 0 0 5px 0;">Aircraft Flown</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--danger);" id="stat-aircraft">-</div>
+            </div>
+            <!-- Unique Airports -->
+            <div style="background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <div style="color: var(--text-light); font-size: 0.85rem; margin: 0 0 5px 0;">Airports Visited</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #d97706;" id="stat-airports">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity / Mini Logbook -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3>🕒 Recent Activity</h3>
+            <a href="/logbook" class="button secondary"
+                style="text-decoration: none; font-size: 0.9rem; padding: 6px 12px;">View All</a>
+        </div>
+        <div class="table-container">
+            <table id="recent-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Route</th>
+                        <th>Aircraft</th>
+                        <th>Total Time</th>
+                    </tr>
+                </thead>
+                <tbody id="recent-tbody">
+                    <tr>
+                        <td colspan="4" style="text-align: center;">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
