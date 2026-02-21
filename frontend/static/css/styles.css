@@ -295,6 +295,17 @@ body.dark button.success:hover {
     width: 100%;
 }
 
+/* Full Width Breakout Utility */
+.breakout {
+    width: calc(100vw - var(--sidebar-width));
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: none !important;
+    border-right: none !important;
+    border-radius: 0 !important;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;

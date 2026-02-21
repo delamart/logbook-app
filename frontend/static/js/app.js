@@ -728,6 +728,7 @@ function renderTable(entries, showActions) {
             <table>
                 <thead>
                     <tr>
+                        <th style="width: 40px; padding: 12px 16px;"><input type="checkbox" class="validationAllCheckbox" onchange="toggleSelectAll(this.checked, true)"></th>
                         <th style="min-width: 90px;">Date</th>
                         <th>Depart</th>
                         <th>Arrive</th>
@@ -745,7 +746,7 @@ function renderTable(entries, showActions) {
                         <th>Dual</th>
                         <th>Instr</th>
                         <th>Remarks</th>
-                        ${showActions ? '<th>Actions</th>' : ''}
+                        ${showActions ? '<th style="text-align: right;">Actions</th>' : ''}
                     </tr>
                 </thead>
                 <tbody>${renderTableRows(entries, showActions)}</tbody>
@@ -891,15 +892,20 @@ function renderTableRows(entries, showActions) {
 }
 
 // Checkbox & Bulk Actions
-function toggleSelectAll(checked) {
-    const checkboxes = document.querySelectorAll('.row-checkbox');
+function toggleSelectAll(checked, isValidation = false) {
+    const context = isValidation ? '#validation-table' : '#master-table';
+    const checkboxes = document.querySelectorAll(`${context} .row-checkbox`);
     checkboxes.forEach(cb => cb.checked = checked);
-    updateSelectedCount();
+    updateSelectedCount(isValidation);
 }
 
-function updateSelectedCount() {
-    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-    const deleteBtn = document.getElementById('btn-delete-selected');
+function updateSelectedCount(isValidation = false) {
+    const context = isValidation ? '#validation-table' : '#master-table';
+    const btnId = isValidation ? 'btn-delete-selected-validation' : 'btn-delete-selected';
+    const masterCbId = isValidation ? '.validationAllCheckbox' : '#selectAllCheckbox';
+
+    const checkedBoxes = document.querySelectorAll(`${context} .row-checkbox:checked`);
+    const deleteBtn = document.getElementById(btnId);
     if (!deleteBtn) return;
 
     const count = checkedBoxes.length;
@@ -914,13 +920,14 @@ function updateSelectedCount() {
         deleteBtn.style.cursor = 'not-allowed';
         deleteBtn.innerText = `Delete Selected (0)`;
 
-        const selectAllCb = document.getElementById('selectAllCheckbox');
+        const selectAllCb = document.querySelector(masterCbId);
         if (selectAllCb) selectAllCb.checked = false;
     }
 }
 
-function deleteSelectedEntries() {
-    const checkedBoxes = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+function deleteSelectedEntries(isValidation = false) {
+    const context = isValidation ? '#validation-table' : '#master-table';
+    const checkedBoxes = Array.from(document.querySelectorAll(`${context} .row-checkbox:checked`));
     if (checkedBoxes.length === 0) return;
 
     customConfirm(`Are you sure you want to delete ${checkedBoxes.length} selected entries? This cannot be undone.`).then(confirmed => {
@@ -928,7 +935,17 @@ function deleteSelectedEntries() {
 
         const idsToDelete = checkedBoxes.map(cb => cb.getAttribute('data-id'));
 
-        // Execute all deletions concurrently
+        if (isValidation) {
+            // In-Memory deletion for Validation zone
+            currentExtractedEntries = currentExtractedEntries.filter(e => !idsToDelete.includes(e.id));
+            document.getElementById('validation-table').innerHTML = renderTable(currentExtractedEntries, true);
+            const selectAllCb = document.querySelector('.validationAllCheckbox');
+            if (selectAllCb) selectAllCb.checked = false;
+            updateSelectedCount(true);
+            return;
+        }
+
+        // Execute all deletions concurrently on the backend
         Promise.all(idsToDelete.map(id => {
             return fetch(`/entries/${id}`, { method: 'DELETE' });
         }))
@@ -936,7 +953,7 @@ function deleteSelectedEntries() {
                 customAlert(`Successfully deleted ${checkedBoxes.length} entries.`).then(() => {
                     const selectAllCb = document.getElementById('selectAllCheckbox');
                     if (selectAllCb) selectAllCb.checked = false;
-                    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+                    document.querySelectorAll('#master-table .row-checkbox').forEach(cb => cb.checked = false); // Ensure only master table checkboxes are unchecked
                     updateSelectedCount(); // reset button text immediately
                     loadAllEntries(); // refetch and render table
                 });
@@ -947,4 +964,3 @@ function deleteSelectedEntries() {
             });
     });
 }
-

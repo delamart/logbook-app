@@ -80,7 +80,7 @@
 </div>
 
 <!-- Validation / Import Zone -->
-<div class="card" id="validation-zone" style="display: none; padding: 0; border-radius: 0;">
+<div class="card breakout" id="validation-zone" style="display: none; padding: 0; border-radius: 0;">
     <div
         style="display: flex; justify-content: space-between; align-items: start; padding: 40px; border-bottom: 1px solid var(--border);">
         <div>
@@ -90,8 +90,11 @@
                 against the source capture.</p>
         </div>
         <div style="display: flex; gap: 16px;">
-            <button class="success" onclick="saveEntries()" style="padding: 12px 24px;">Confirm Transaction</button>
-            <button class="secondary" onclick="location.reload()" style="padding: 12px 24px;">Drop Table</button>
+            <button class="success" onclick="saveEntries()" style="padding: 12px 24px;">Import</button>
+            <button id="btn-delete-selected-validation" onclick="deleteSelectedEntries(true)" disabled
+                style="padding: 12px 24px; border-color: var(--danger); background: transparent; color: var(--danger); opacity: 0.5; cursor: not-allowed;">Delete
+                Selected (0)</button>
+            <button class="secondary" onclick="location.reload()" style="padding: 12px 24px;">Cancel</button>
         </div>
     </div>
 
@@ -127,14 +130,16 @@
 
         <!-- Review Image Container -->
         <div id="review-image-container"
-            style="margin-bottom: 40px; border: 1px solid var(--border); text-align: center; background: var(--bg); padding: 24px;">
+            style="margin-bottom: 0; border: 1px solid var(--border); text-align: center; background: var(--bg); padding: 24px;">
             <img id="review-image" src="" style="max-width: 100%; height: auto; border: 1px solid var(--border);">
         </div>
+    </div>
 
-        <div id="validation-table" class="table-container"
-            style="border: 1px solid var(--border); border-bottom: none;"></div>
+    <div id="validation-table" class="table-container" style="border-top: 1px solid var(--border);">
+    </div>
 
-        <details id="debug-response-details" style="margin-top: 40px;">
+    <div style="padding: 40px; padding-top: 40px;">
+        <details id="debug-response-details" style="margin-top: 0;">
             <summary
                 style="cursor: pointer; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-light); letter-spacing: 0.1em; text-transform: uppercase;">
                 Inspect Transaction Payload (Debug)</summary>
