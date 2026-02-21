@@ -44,8 +44,10 @@ def test_manual_entry_creation_and_edit(page: Page):
     
     # 2. Wait for new row
     page.wait_for_timeout(1000) 
-    new_entry_text = page.get_by_text("New Entry").first
-    expect(new_entry_text).to_be_visible(timeout=5000)
+    page.wait_for_timeout(1000) 
+    # Use locator to find the input since it enters edit mode automatically
+    new_entry_input = page.locator('input[value="New Entry"]').first
+    expect(new_entry_input).to_be_visible(timeout=5000)
     
     # Verify persists
     page.reload()

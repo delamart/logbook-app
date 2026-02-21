@@ -15,3 +15,5 @@ pytest
 pytest-playwright
 httpx
 airportsdata
+supabase
+psycopg2-binary

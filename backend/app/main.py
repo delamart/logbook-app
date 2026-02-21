@@ -12,13 +12,57 @@ import hashlib
 # Import OCR engine instance directly
 from .ocr import ocr_engine
 import airportsdata
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 airports_db = airportsdata.load('ICAO')
 
 # Database Setup
+# Database Setup
 sqlite_file_name = "backend/data/logbook.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
-engine = create_engine(sqlite_url, echo=True)
+# Use DATABASE_URL from environment for Supabase/Postgres
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    print("WARNING: DATABASE_URL not found, falling back to SQLite")
+    engine = create_engine(sqlite_url, echo=True)
+else:
+    # Ensure compat with psycopg2
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    engine = create_engine(database_url, echo=True)
+
+# Supabase Client Setup
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+supabase: Client = None
+if supabase_url and supabase_key:
+    supabase = create_client(supabase_url, supabase_key)
+else:
+    print("WARNING: SUPABASE_URL or SUPABASE_KEY not set.")
+
+def upload_to_supabase(file_content: bytes, filename: str, content_type: str) -> str:
+    """Uploads file to Supabase Storage and returns Public URL"""
+    if not supabase:
+        raise Exception("Supabase not configured")
+    
+    bucket_name = "uploads"
+    try:
+        # Upload
+        supabase.storage.from_(bucket_name).upload(
+            path=filename,
+            file=file_content,
+            file_options={"content-type": content_type, "upsert": "true"}
+        )
+        # Get Public URL
+        public_url = supabase.storage.from_(bucket_name).get_public_url(filename)
+        return public_url
+    except Exception as e:
+        print(f"Supabase Upload Error: {e}")
+        # Fallback? Or Re-raise?
+        raise e
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
@@ -81,6 +125,20 @@ async def upload_image(
         ext = ".png" # Default fallback
         
     hashed_filename = f"{file_hash}{ext}"
+    
+    # 1. Upload to Supabase Storage (if configured)
+    public_url = None
+    if supabase:
+        try:
+            public_url = upload_to_supabase(content, hashed_filename, file.content_type or "image/png")
+            print(f"Uploaded to Supabase: {public_url}")
+        except Exception as e:
+            print(f"Failed to upload to Supabase: {e}")
+    
+    # 2. Save locally (cached) for OCR processing
+    # Even if using Supabase, we might need a local copy for the Gemini API if passing path
+    # OR we can update ocr.py to accept bytes? 
+    # For now, keep local cache behavior for OCR engine compatibility and speed
     file_location = f"uploads/{hashed_filename}"
     
     # Save only if not exists (deduplication)
@@ -95,12 +153,18 @@ async def upload_image(
         model_name=model
     )
     
+    # Inject Public URL into extracted data
+    if public_url:
+        for entry in extracted_data:
+            entry['page_image_path'] = public_url
+
     # Return extracted data WITHOUT saving to DB yet
     return {
         "info": f"file processed (hash: {file_hash})", 
         "extracted_entries": extracted_data,
         "raw_json": raw_json,
-        "model_used": model
+        "model_used": model,
+        "public_url": public_url
     }
 
 from typing import List
@@ -388,7 +452,7 @@ async def import_foreflight_csv(file: UploadFile = File(...)):
             else:
                  se_time = total_time
 
-            entries.append(LogEntry(
+            entry_obj = LogEntry(
                 date=raw_date,
                 departure_place=get_str('From'),
                 departure_time=dep_time,
@@ -417,17 +481,19 @@ async def import_foreflight_csv(file: UploadFile = File(...)):
                 time_instructor=parse_duration(row.get('DualGiven')),
                 
                 remarks=get_str('Comments') or get_str('PilotComments') or get_str('Remarks')
-            ))
+            )
+            entries.append(entry_obj)
 
         # Return entries for preview (Frontend will use showValidation)
         # Convert LogEntry objects to dicts
         entries_data = [entry.model_dump() for entry in entries]
         
-        return {
+        result = {
             "extract_count": len(entries),
             "extracted_entries": entries_data,
             "raw_json": {"csv_headers": csv_reader.fieldnames, "sample_row": entries_data[0] if entries_data else {}}
         }
+        return result
 
     except Exception as e:
         import traceback

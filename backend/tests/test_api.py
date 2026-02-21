@@ -184,8 +184,15 @@ class TestAPI(unittest.TestCase):
         response = self.client.post("/import/foreflight", files=files)
         
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Successfully imported 2 entries", response.json()["message"])
+        data = response.json()
+        print(f"DEBUG: Test received data: {data}")
+        self.assertEqual(data["extract_count"], 2)
         
+        # Save Entries
+        entries_to_save = data["extracted_entries"]
+        response = self.client.post("/save_entries/", json=entries_to_save)
+        self.assertEqual(response.status_code, 200)
+
         # Verify Database
         response = self.client.get("/entries/")
         entries = response.json()
