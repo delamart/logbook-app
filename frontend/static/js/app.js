@@ -776,6 +776,7 @@ function renderTableRows(entries, showActions) {
         if (editingRowId == e.id && showActions) {
             return `
             <tr data-id="${e.id}" class="editing">
+                <td style="width: 40px; padding: 12px 16px;"><input type="checkbox" class="row-checkbox" data-id="${e.id}" onchange="updateSelectedCount()"></td>
                 <td><input data-key="date" type="date" value="${e.date || ''}" style="width: 120px; font-family: var(--font-mono);"></td>
                 <td>
                     <input data-key="departure_place" list="airports-list" value="${escapeAttribute(e.departure_place)}" placeholder="Place" style="width: 70px; margin-bottom: 2px;">
@@ -829,7 +830,10 @@ function renderTableRows(entries, showActions) {
         }
 
         return `
-        <tr>
+        <tr data-id="${e.id}">
+            <td style="width: 40px; padding: 12px 16px;">
+                <input type="checkbox" class="row-checkbox" data-id="${e.id}" onchange="updateSelectedCount()">
+            </td>
             <td>
                 <div style="font-weight:500; white-space:nowrap;">${dateObj.main}</div>
                 <div style="font-size:0.8em; color:var(--text-light);">${dateObj.sub}</div>
@@ -885,3 +889,62 @@ function renderTableRows(entries, showActions) {
         </tr>
     `}).join('');
 }
+
+// Checkbox & Bulk Actions
+function toggleSelectAll(checked) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = checked);
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+    const deleteBtn = document.getElementById('btn-delete-selected');
+    if (!deleteBtn) return;
+
+    const count = checkedBoxes.length;
+    if (count > 0) {
+        deleteBtn.disabled = false;
+        deleteBtn.style.opacity = '1';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.innerText = `Delete Selected (${count})`;
+    } else {
+        deleteBtn.disabled = true;
+        deleteBtn.style.opacity = '0.5';
+        deleteBtn.style.cursor = 'not-allowed';
+        deleteBtn.innerText = `Delete Selected (0)`;
+
+        const selectAllCb = document.getElementById('selectAllCheckbox');
+        if (selectAllCb) selectAllCb.checked = false;
+    }
+}
+
+function deleteSelectedEntries() {
+    const checkedBoxes = Array.from(document.querySelectorAll('.row-checkbox:checked'));
+    if (checkedBoxes.length === 0) return;
+
+    customConfirm(`Are you sure you want to delete ${checkedBoxes.length} selected entries? This cannot be undone.`).then(confirmed => {
+        if (!confirmed) return;
+
+        const idsToDelete = checkedBoxes.map(cb => cb.getAttribute('data-id'));
+
+        // Execute all deletions concurrently
+        Promise.all(idsToDelete.map(id => {
+            return fetch(`/entries/${id}`, { method: 'DELETE' });
+        }))
+            .then(() => {
+                customAlert(`Successfully deleted ${checkedBoxes.length} entries.`).then(() => {
+                    const selectAllCb = document.getElementById('selectAllCheckbox');
+                    if (selectAllCb) selectAllCb.checked = false;
+                    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+                    updateSelectedCount(); // reset button text immediately
+                    loadAllEntries(); // refetch and render table
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                customAlert("An error occurred during bulk deletion. Please refer to console logs.");
+            });
+    });
+}
+

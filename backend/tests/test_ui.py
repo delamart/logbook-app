@@ -82,3 +82,47 @@ def test_navigation_sidebar(page: Page):
     page.locator(".sidebar-nav a[href='/logbook']").click()
     expect(page).to_have_url(f"{BASE_URL}/logbook")
     expect(page.locator("#master-table")).to_be_visible()
+
+def test_bulk_delete(page: Page):
+    # Setup: Create two entries
+    page.request.post(f"{BASE_URL}/entries/create", data={"date": "2023-01-01", "remarks": "Bulk Delete 1"})
+    page.request.post(f"{BASE_URL}/entries/create", data={"date": "2023-01-02", "remarks": "Bulk Delete 2"})
+    
+    page.goto(f"{BASE_URL}/logbook")
+    page.wait_for_selector("text=Synthesizing flight data...", state="hidden")
+    
+    # Verify entries exist
+    expect(page.get_by_text("Bulk Delete 1").first).to_be_visible()
+    expect(page.get_by_text("Bulk Delete 2").first).to_be_visible()
+    
+    # Button initially disabled
+    delete_btn = page.locator("#btn-delete-selected")
+    expect(delete_btn).to_be_disabled()
+    
+    # Click Select All
+    page.locator("#selectAllCheckbox").check()
+    
+    # Wait for JS to update UI (just in case)
+    page.wait_for_timeout(500)
+    
+    # Button should be enabled and show count >= 2
+    expect(delete_btn).to_be_enabled()
+    
+    # Execute delete
+    delete_btn.click()
+    
+    # Confirm warning modal
+    page.locator("#custom-dialog-confirm").click()
+    
+    # Confirm success modal
+    page.locator("#custom-dialog-confirm").click()
+    
+    # Wait for tables to refresh
+    page.wait_for_timeout(1000)
+    
+    # Verify entries are gone
+    expect(page.get_by_text("Bulk Delete 1")).not_to_be_visible()
+    expect(page.get_by_text("Bulk Delete 2")).not_to_be_visible()
+    
+    # Verify button reset
+    expect(delete_btn).to_be_disabled()

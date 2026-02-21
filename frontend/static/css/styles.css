@@ -331,7 +331,7 @@ tr.editing td {
     vertical-align: middle;
 }
 
-tr.editing input {
+tr.editing input:not([type="checkbox"]) {
     background: var(--surface);
     border: 1px solid var(--border);
     color: var(--text);
@@ -344,9 +344,17 @@ tr.editing input {
     transition: border-color 0.2s;
 }
 
-tr.editing input:focus {
+tr.editing input:not([type="checkbox"]):focus {
     border-color: var(--text);
     outline: none;
+}
+
+input[type="checkbox"] {
+    accent-color: var(--primary);
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    margin: 0;
 }
 
 /* Date Picker native adjustments */
