@@ -8,7 +8,9 @@
 
     <!-- External Libs -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -40,6 +42,17 @@
                 {% block content %}{% endblock %}
             </div>
         </main>
+    </div>
+
+    <!-- Custom Modal Dialogs -->
+    <div id="custom-dialog-overlay" class="custom-dialog-overlay" style="display: none;">
+        <div class="custom-dialog">
+            <div id="custom-dialog-message" class="custom-dialog-message"></div>
+            <div class="custom-dialog-actions" id="custom-dialog-actions">
+                <button id="custom-dialog-cancel" class="secondary" style="display: none;">Cancel</button>
+                <button id="custom-dialog-confirm">OK</button>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->

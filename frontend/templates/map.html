@@ -5,7 +5,9 @@
 {% block body_class %}page-map{% endblock %}
 
 {% block content %}
-<div class="card" style="margin-bottom: 0;" id="map-card">
-    <div id="map" style="height: 70vh; width: 100%; border-radius: 8px; z-index: 1;"></div>
+<div class="card" style="margin-bottom: 0; padding: 40px; border-radius: 0;" id="map-card">
+    <div class="card-title">Flight Path Telemetry</div>
+    <div id="map" style="height: 70vh; width: 100%; border-radius: 0; z-index: 1; border: 1px solid var(--border);">
+    </div>
 </div>
 {% endblock %}

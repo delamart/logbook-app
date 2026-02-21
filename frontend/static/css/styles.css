@@ -1,50 +1,49 @@
 :root {
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --bg: #f8fafc;
-    --surface: #ffffff;
-    --text: #1e293b;
-    --text-light: #64748b;
-    --border: #e2e8f0;
-    --danger: #ef4444;
-    --success: #22c55e;
-    --editing-bg: #eff6ff;
-    --sidebar-width: 250px;
-    --header-height: 64px;
+    /* Refined Minimalist Precision Theme */
+    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+    /* Light Mode */
+    color-scheme: light;
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --text: #111111;
+    --text-light: #737373;
+    --border: #E5E5E5;
+
+    --primary: #111111;
+    --primary-hover: #333333;
+    --primary-text: #FFFFFF;
+
+    --danger: #D93025;
+    --success: #0D652D;
+    --editing-bg: #F5F5F5;
+
+    --sidebar-width: 280px;
+    --header-height: 80px;
+    --transition-speed: 0.3s;
+    --radius-sm: 0px;
+    /* Sharp corners for minimalism */
+    --radius-md: 0px;
+    --radius-lg: 0px;
 }
 
-/* Dark Mode Overrides */
 body.dark {
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --text: #f1f5f9;
-    --text-light: #94a3b8;
-    --border: #334155;
-    --editing-bg: #334155;
-}
+    /* Dark Mode Theme */
+    color-scheme: dark;
+    --bg: #0A0A0A;
+    --surface: #141414;
+    --text: #F5F5F5;
+    --text-light: #888888;
+    --border: #222222;
 
-body.dark .upload-section {
-    background: #1e293b;
-}
+    --primary: #FFFFFF;
+    --primary-hover: #E5E5E5;
+    --primary-text: #000000;
 
-body.dark .upload-section:hover {
-    background: #334155;
-}
-
-body.dark th {
-    background: #334155;
-    color: #cbd5e1;
-}
-
-body.dark tr:hover {
-    background-color: #1e293b;
-    /* slightly lighter than bg */
-}
-
-body.dark pre {
-    background: #0f172a !important;
-    color: #cbd5e1;
-    border: 1px solid var(--border);
+    --danger: #FF6666;
+    --success: #4CAF50;
+    --editing-bg: #1A1A1A;
 }
 
 * {
@@ -52,100 +51,205 @@ body.dark pre {
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
     background: var(--bg);
     color: var(--text);
     margin: 0;
-    padding: 0; /* Reset padding for dashboard layout */
-    transition: background 0.3s, color 0.3s;
+    padding: 0;
+    transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    margin-top: 0;
+    color: var(--text);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+}
+
+/* App Layout */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    margin-left: var(--sidebar-width);
+}
+
+.top-bar {
+    height: var(--header-height);
+    padding: 0 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 10;
+    transition: background var(--transition-speed) ease, border-color var(--transition-speed) ease;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.top-bar-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.content-wrapper {
+    padding: 40px;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.page-logbook .content-wrapper {
+    max-width: none;
+    padding: 24px 40px;
 }
 
 /* Card Style */
 .card {
     background: var(--surface);
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    padding: 24px;
+    padding: 32px;
     border: 1px solid var(--border);
-    margin-bottom: 24px;
+    margin-bottom: 32px;
+    transition: all var(--transition-speed) ease;
 }
 
-h1,
-h2,
-h3 {
-    margin-top: 0;
-    color: var(--text);
+.card-title {
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    color: var(--text-light);
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
 }
 
 /* Upload Zone */
 .upload-section {
-    border: 2px dashed var(--border);
-    padding: 60px;
+    border: 1px dashed var(--border);
+    padding: 80px 40px;
     text-align: center;
-    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s;
-    background: #f1f5f9;
+    transition: all 0.2s ease;
+    background: transparent;
 }
 
 .upload-section:hover {
-    border-color: var(--primary);
-    background: #eff6ff;
+    border-color: var(--text);
+    background: var(--editing-bg);
+}
+
+.upload-section i {
+    font-size: 2rem;
+    color: var(--text-light);
+    margin-bottom: 16px;
+    display: block;
+}
+
+.upload-section p {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--text-light);
 }
 
 /* Buttons */
 button {
     background: var(--primary);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
+    color: var(--primary-text);
+    border: 1px solid var(--primary);
+    padding: 12px 24px;
     cursor: pointer;
-    font-weight: 500;
-    font-size: 0.95rem;
-    transition: opacity 0.2s;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
 }
 
 button:hover {
-    opacity: 0.9;
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
 }
 
 button.secondary {
-    background: var(--text-light);
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+button.secondary:hover {
+    border-color: var(--text);
 }
 
 button.icon-btn {
     background: transparent;
     color: var(--text);
+    border: none;
     font-size: 1.2rem;
     padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 button.icon-btn:hover {
-    background: var(--border);
+    background: var(--editing-bg);
 }
 
 button.success {
     background: var(--success);
+    border-color: var(--success);
+    color: #fff;
 }
 
-/* Icon Button Styles */
+button.success:hover {
+    background: #0b5124;
+}
+
+body.dark button.success:hover {
+    background: #3d8c40;
+}
+
+/* Icon Button Styles (Row Actions) */
 .btn-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 6px;
-    border-radius: 4px;
+    padding: 8px;
     background: transparent;
     border: 1px solid transparent;
     cursor: pointer;
-    width: 32px;
-    height: 32px;
-    transition: all 0.2s;
+    color: var(--text-light);
+    transition: all 0.2s ease;
 }
 
 .btn-icon:hover {
-    background: var(--border);
+    color: var(--text);
+}
+
+.btn-icon svg {
+    width: 18px;
+    height: 18px;
 }
 
 .btn-icon.save {
@@ -153,39 +257,36 @@ button.success {
 }
 
 .btn-icon.save:hover {
-    background: #dcfce7;
-    border-color: var(--success);
+    background: rgba(76, 175, 80, 0.1);
 }
 
 .btn-icon.cancel {
     color: var(--text-light);
-    background: transparent;
+}
+
+.btn-icon.cancel:hover {
+    background: var(--editing-bg);
 }
 
 .btn-icon.edit {
-    color: var(--primary);
-    background: transparent;
+    color: var(--text);
 }
 
 .btn-icon.edit:hover {
-    background: #dbeafe;
-    border-color: var(--primary);
+    background: var(--editing-bg);
 }
 
 .btn-icon.delete {
     color: var(--danger);
-    background: transparent;
 }
 
 .btn-icon.delete:hover {
-    background: #fee2e2;
-    border-color: var(--danger);
+    background: rgba(255, 102, 102, 0.1);
 }
 
-.btn-icon svg {
-    width: 18px;
-    height: 18px;
-    stroke-width: 2;
+/* Typography Helpers */
+.mono {
+    font-family: var(--font-mono);
 }
 
 /* Full Width Table */
@@ -197,61 +298,66 @@ button.success {
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
 }
 
 th {
-    background: #f1f5f9;
     text-align: left;
     padding: 12px 16px;
-    font-weight: 600;
+    font-weight: 400;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     color: var(--text-light);
-    position: sticky;
-    top: 0;
+    border-bottom: 1px solid var(--border);
     white-space: nowrap;
 }
 
 td {
     border-bottom: 1px solid var(--border);
     padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
 }
 
-tr:last-child td {
-    border-bottom: none;
+tr:hover td {
+    background-color: var(--editing-bg);
 }
 
-tr:hover {
-    background-color: #f8fafc;
-}
-
-tr.editing {
+tr.editing td {
     background-color: var(--editing-bg) !important;
+    padding: 4px 8px;
+    vertical-align: middle;
 }
 
 tr.editing input {
-    background: transparent;
+    background: var(--surface);
     border: 1px solid var(--border);
     color: var(--text);
-    border-radius: 4px;
-    padding: 4px;
-}
-
-tr.editing input {
-    background: transparent;
-    border: 1px solid transparent;
-    /* Hidden by default */
-    color: inherit;
-    border-radius: 0;
-    padding: 0;
+    padding: 6px 8px;
     font-family: inherit;
-    font-size: inherit;
-    width: 100%;
-    height: 100%;
+    font-size: 0.85rem;
+    width: 100% !important;
+    box-sizing: border-box;
+    display: block;
+    transition: border-color 0.2s;
 }
 
 tr.editing input:focus {
-    border-bottom: 1px solid var(--primary);
+    border-color: var(--text);
     outline: none;
+}
+
+/* Date Picker native adjustments */
+::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
 }
 
 /* Editor Container (Cropper) */
@@ -259,8 +365,7 @@ tr.editing input:focus {
     display: none;
     text-align: center;
     max-width: 100%;
-    /* Removed width: 100% to prevent overflow with padding */
-    margin: 20px 0;
+    margin: 24px 0;
 }
 
 /* Modal */
@@ -272,19 +377,18 @@ tr.editing input:focus {
     top: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
 }
 
 .modal-content {
     background: var(--surface);
-    /* Use surface var */
     color: var(--text);
-    margin: 2% auto;
-    padding: 20px;
-    border-radius: 8px;
+    margin: 5% auto;
+    padding: 40px;
     width: 600px;
     max-width: 90%;
-    max-height: 90vh;
+    max-height: 85vh;
     overflow-y: auto;
     border: 1px solid var(--border);
 }
@@ -292,7 +396,7 @@ tr.editing input:focus {
 #edit-form {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: 24px;
 }
 
 .form-group {
@@ -302,22 +406,73 @@ tr.editing input:focus {
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
+    margin-bottom: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-light);
 }
 
 .form-group input {
     width: 100%;
-    padding: 8px;
+    padding: 12px;
     border: 1px solid var(--border);
-    border-radius: 4px;
-    box-sizing: border-box;
     background: var(--bg);
     color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--text);
 }
 
 .actions {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
+}
+
+/* Custom Modal */
+.custom-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-dialog-overlay.active {
+    display: flex !important;
+}
+
+.custom-dialog {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.custom-dialog-message {
+    font-family: var(--font-sans);
+    color: var(--text);
+    margin-bottom: 32px;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+.custom-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
 }

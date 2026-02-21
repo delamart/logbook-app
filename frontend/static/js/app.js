@@ -12,6 +12,40 @@ let currentBlob = null; // Store for re-scanning
 let sortCol = 'date';
 let sortAsc = false;
 let timeFilterMonths = 'all';
+// ---- Custom Dialog Logic ----
+function showCustomDialog(message, isConfirm = false) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('custom-dialog-overlay');
+        const msgEl = document.getElementById('custom-dialog-message');
+        const cancelBtn = document.getElementById('custom-dialog-cancel');
+        const confirmBtn = document.getElementById('custom-dialog-confirm');
+
+        msgEl.textContent = message;
+
+        cancelBtn.style.display = isConfirm ? 'inline-block' : 'none';
+        overlay.classList.add('active');
+
+        const cleanup = () => {
+            overlay.classList.remove('active');
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+        };
+
+        confirmBtn.onclick = () => {
+            cleanup();
+            resolve(true);
+        };
+
+        cancelBtn.onclick = () => {
+            cleanup();
+            resolve(false);
+        };
+    });
+}
+
+const customAlert = (msg) => showCustomDialog(msg, false);
+const customConfirm = (msg) => showCustomDialog(msg, true);
+
 let map;
 
 // ---- CSV Import Listener ----
@@ -40,7 +74,7 @@ if (csvInput) {
                 .then(r => r.json())
                 .then(data => {
                     if (data.error) {
-                        alert("Error: " + data.message);
+                        customAlert("Error: " + data.message);
                         return;
                     }
 
@@ -56,7 +90,7 @@ if (csvInput) {
                 })
                 .catch(err => {
                     console.error(err);
-                    alert("Error processing CSV: " + err);
+                    customAlert("Error processing CSV: " + err);
                 })
                 .finally(() => {
                     this.value = ''; // Reset
@@ -376,11 +410,11 @@ function uploadBlob(blob, customPrompt = null, modelName = null) {
 
             showValidation(data);
         })
-        .catch(err => alert("Upload error: " + err));
+        .catch(err => customAlert("Upload error: " + err));
 }
 
 function rescanWithPrompt() {
-    if (!currentBlob) return alert("No image to scan!");
+    if (!currentBlob) { customAlert("No image to scan!"); return; }
     const newPrompt = document.getElementById('prompt-editor').value;
     const newModel = document.getElementById('validation-model-select').value;
 
@@ -426,7 +460,7 @@ function saveEntries() {
     }).then(() => {
         document.getElementById('validation-zone').style.display = 'none';
         loadAllEntries();
-        alert("Import Successful!");
+        customAlert("Import Successful!");
 
         // Reset state for new scan
         currentExtractedEntries = [];
@@ -470,6 +504,15 @@ function calculateStats(entries) {
     if (document.getElementById('stat-landings')) document.getElementById('stat-landings').innerText = totalLandings;
     if (document.getElementById('stat-aircraft')) document.getElementById('stat-aircraft').innerText = aircraft.size;
     if (document.getElementById('stat-airports')) document.getElementById('stat-airports').innerText = airports.size;
+
+    // Generate/Update Datalist for Airports Autocomplete
+    let datalist = document.getElementById('airports-list');
+    if (!datalist) {
+        datalist = document.createElement('datalist');
+        datalist.id = 'airports-list';
+        document.body.appendChild(datalist);
+    }
+    datalist.innerHTML = Array.from(airports).sort().map(a => `<option value="${a}">`).join('');
 }
 
 function renderMasterTable() {
@@ -531,34 +574,42 @@ function cancelEdit() {
 
 function saveInline(id) {
     const row = document.querySelector(`tr[data-id="${id}"]`);
-    if (!row) return;
-
+    const updateData = {};
     const inputs = row.querySelectorAll('input');
-    const data = {};
+
+    // Helper to parse HH:MM or decimal back to decimal float
+    const parseDuration = (val) => {
+        if (!val) return null;
+        if (typeof val === 'string' && val.includes(':')) {
+            const parts = val.split(':');
+            const h = parseInt(parts[0], 10) || 0;
+            const m = parseInt(parts[1], 10) || 0;
+            return parseFloat((h + (m / 60)).toFixed(2));
+        }
+        const floatVal = parseFloat(val);
+        return isNaN(floatVal) ? null : floatVal;
+    };
 
     inputs.forEach(input => {
-        const key = input.dataset.key;
-        data[key] = input.value;
+        const key = input.getAttribute('data-key');
+        if (key) {
+            let val = input.value.trim();
+            if (val === '') {
+                val = null;
+            } else if (['single_pilot_se', 'single_pilot_me', 'multi_pilot', 'total_flight_time', 'time_night', 'time_ifr', 'time_pic', 'time_copi', 'time_dual', 'time_instructor'].includes(key)) {
+                val = parseDuration(val);
+            } else if (['landings_day', 'landings_night'].includes(key)) {
+                val = parseInt(val, 10);
+                if (isNaN(val)) val = 0;
+            }
+            updateData[key] = val;
+        }
     });
-
-    // Decimal Float Conversion
-    const floatFields = [
-        'single_pilot_se', 'single_pilot_me', 'multi_pilot', 'total_flight_time',
-        'time_night', 'time_ifr', 'time_pic', 'time_copi', 'time_dual', 'time_instructor'
-    ];
-    floatFields.forEach(f => {
-        data[f] = parseFloat(data[f]) || 0;
-    });
-
-    // Int Conversion
-    data.landings_day = parseInt(data.landings_day) || 0;
-    data.landings_night = parseInt(data.landings_night) || 0;
-
     // Handle Temp/Local Edit
     if (String(id).startsWith('temp-')) {
         const idx = currentExtractedEntries.findIndex(e => e.id === id);
         if (idx !== -1) {
-            Object.assign(currentExtractedEntries[idx], data);
+            Object.assign(currentExtractedEntries[idx], updateData);
             // Keep ID
             currentExtractedEntries[idx].id = id;
             editingRowId = null;
@@ -629,17 +680,17 @@ function addEntry() {
     });
 }
 
-function deleteAllEntries() {
-    if (confirm("Are you sure you want to delete ALL entries? This cannot be undone.")) {
-        if (confirm("Really? Delete everything?")) {
+async function deleteAllEntries() {
+    if (await customConfirm("Are you sure you want to delete ALL entries? This cannot be undone.")) {
+        if (await customConfirm("Really? Delete everything?")) {
             fetch('/entries/all', { method: 'DELETE' })
                 .then(() => loadAllEntries());
         }
     }
 }
 
-function deleteEntry(id) {
-    if (!confirm("Are you sure you want to delete this entry?")) return;
+async function deleteEntry(id) {
+    if (!(await customConfirm("Are you sure you want to delete this entry?"))) return;
 
     if (String(id).startsWith('temp-')) {
         currentExtractedEntries = currentExtractedEntries.filter(e => e.id !== id);
@@ -725,43 +776,43 @@ function renderTableRows(entries, showActions) {
         if (editingRowId == e.id && showActions) {
             return `
             <tr data-id="${e.id}" class="editing">
-                <td><input data-key="date" value="${e.date}" style="width: 100px;"></td>
+                <td><input data-key="date" type="date" value="${e.date || ''}" style="width: 120px; font-family: var(--font-mono);"></td>
                 <td>
-                    <input data-key="departure_place" value="${escapeAttribute(e.departure_place)}" placeholder="Place" style="width: 60px; margin-bottom: 2px;">
-                    <input data-key="departure_time" value="${escapeAttribute(e.departure_time)}" placeholder="Time" style="width: 60px;">
+                    <input data-key="departure_place" list="airports-list" value="${escapeAttribute(e.departure_place)}" placeholder="Place" style="width: 70px; margin-bottom: 2px;">
+                    <input data-key="departure_time" type="text" value="${escapeAttribute(e.departure_time)}" placeholder="HH:MM" style="width: 70px; font-family: var(--font-mono); font-size: 0.75rem;">
                 </td>
                 <td>
-                    <input data-key="arrival_place" value="${escapeAttribute(e.arrival_place)}" placeholder="Place" style="width: 60px; margin-bottom: 2px;">
-                    <input data-key="arrival_time" value="${escapeAttribute(e.arrival_time)}" placeholder="Time" style="width: 60px;">
+                    <input data-key="arrival_place" list="airports-list" value="${escapeAttribute(e.arrival_place)}" placeholder="Place" style="width: 70px; margin-bottom: 2px;">
+                    <input data-key="arrival_time" type="text" value="${escapeAttribute(e.arrival_time)}" placeholder="HH:MM" style="width: 70px; font-family: var(--font-mono); font-size: 0.75rem;">
                 </td>
                 <td>
-                    <input data-key="aircraft_registration" value="${escapeAttribute(e.aircraft_registration)}" placeholder="Reg" style="width: 70px; margin-bottom: 2px;">
-                    <input data-key="aircraft_model" value="${escapeAttribute(e.aircraft_model)}" placeholder="Model" style="width: 70px;">
+                    <input data-key="aircraft_registration" value="${escapeAttribute(e.aircraft_registration)}" placeholder="Reg" style="width: 80px; margin-bottom: 2px;">
+                    <input data-key="aircraft_model" value="${escapeAttribute(e.aircraft_model)}" placeholder="Model" style="width: 80px;">
                 </td>
                 
-                <!-- Durations (Edit as decimal for now to keep simple, or validation needed) -->
-                <td><input data-key="single_pilot_se" value="${e.single_pilot_se || 0}" style="width: 50px;"></td>
-                <td><input data-key="single_pilot_me" value="${e.single_pilot_me || 0}" style="width: 50px;"></td>
-                <td><input data-key="multi_pilot" value="${e.multi_pilot || 0}" style="width: 50px;"></td>
-                <td><input data-key="total_flight_time" value="${e.total_flight_time || 0}" style="width: 50px; font-weight: bold;"></td>
+                <!-- Durations (Formatted HH:MM for easy editing) -->
+                <td><input data-key="single_pilot_se" value="${formatDuration(e.single_pilot_se) !== '-' ? formatDuration(e.single_pilot_se) : ''}" placeholder="HH:MM" style="width: 60px;"></td>
+                <td><input data-key="single_pilot_me" value="${formatDuration(e.single_pilot_me) !== '-' ? formatDuration(e.single_pilot_me) : ''}" placeholder="HH:MM" style="width: 60px;"></td>
+                <td><input data-key="multi_pilot" value="${formatDuration(e.multi_pilot) !== '-' ? formatDuration(e.multi_pilot) : ''}" placeholder="HH:MM" style="width: 60px;"></td>
+                <td><input data-key="total_flight_time" value="${formatDuration(e.total_flight_time) !== '-' ? formatDuration(e.total_flight_time) : ''}" placeholder="HH:MM" style="width: 60px; font-weight: 500;"></td>
                 
                 <td><input data-key="name_pic" value="${escapeAttribute(e.name_pic)}" style="width: 100px;"></td>
                 
                 <!-- Landings -->
                 <td style="display:flex; flex-direction:column; gap:2px;">
-                    <input data-key="landings_day" value="${e.landings_day || 0}" placeholder="Day" style="width: 40px;">
-                    <input data-key="landings_night" value="${e.landings_night || 0}" placeholder="Night" style="width: 40px;">
+                    <input data-key="landings_day" value="${e.landings_day || 0}" placeholder="Day" style="width: 50px;">
+                    <input data-key="landings_night" value="${e.landings_night || 0}" placeholder="Night" style="width: 50px;">
                 </td>
                 
-                <td><input data-key="time_night" value="${e.time_night || 0}" style="width: 50px;"></td>
-                <td><input data-key="time_ifr" value="${e.time_ifr || 0}" style="width: 50px;"></td>
+                <td><input data-key="time_night" value="${formatDuration(e.time_night) !== '-' ? formatDuration(e.time_night) : ''}" placeholder="HH:MM" style="width: 60px;"></td>
+                <td><input data-key="time_ifr" value="${formatDuration(e.time_ifr) !== '-' ? formatDuration(e.time_ifr) : ''}" placeholder="HH:MM" style="width: 60px;"></td>
                 
-                <td><input data-key="time_pic" value="${e.time_pic || 0}" style="width: 50px;"></td>
-                <td><input data-key="time_copi" value="${e.time_copi || 0}" style="width: 50px;"></td>
-                <td><input data-key="time_dual" value="${e.time_dual || 0}" style="width: 50px;"></td>
-                <td><input data-key="time_instructor" value="${e.time_instructor || 0}" style="width: 50px;"></td>
+                <td><input data-key="time_pic" value="${formatDuration(e.time_pic) !== '-' ? formatDuration(e.time_pic) : ''}" placeholder="HH:MM" style="width: 60px;"></td>
+                <td><input data-key="time_copi" value="${formatDuration(e.time_copi) !== '-' ? formatDuration(e.time_copi) : ''}" placeholder="HH:MM" style="width: 60px;"></td>
+                <td><input data-key="time_dual" value="${formatDuration(e.time_dual) !== '-' ? formatDuration(e.time_dual) : ''}" placeholder="HH:MM" style="width: 60px;"></td>
+                <td><input data-key="time_instructor" value="${formatDuration(e.time_instructor) !== '-' ? formatDuration(e.time_instructor) : ''}" placeholder="HH:MM" style="width: 60px;"></td>
                 
-                <td><input data-key="remarks" value="${escapeAttribute(e.remarks)}" style="width: 150px;"></td>
+                <td><input data-key="remarks" value="${escapeAttribute(e.remarks)}" style="width: 180px;"></td>
                 
                 <td>
                     <div class="actions">
@@ -780,19 +831,19 @@ function renderTableRows(entries, showActions) {
         return `
         <tr>
             <td>
-                <div style="font-weight:600; white-space:nowrap;">${dateObj.main}</div>
+                <div style="font-weight:500; white-space:nowrap;">${dateObj.main}</div>
                 <div style="font-size:0.8em; color:var(--text-light);">${dateObj.sub}</div>
             </td>
             <td>
-                <div style="font-weight:600;">${e.departure_place || '-'}</div>
+                <div style="font-weight:500;">${e.departure_place || '-'}</div>
                 <div style="font-size:0.8em; color:var(--text-light);">${e.departure_time || ''}</div>
             </td>
             <td>
-                <div style="font-weight:600;">${e.arrival_place || '-'}</div>
+                <div style="font-weight:500;">${e.arrival_place || '-'}</div>
                 <div style="font-size:0.8em; color:var(--text-light);">${e.arrival_time || ''}</div>
             </td>
             <td>
-                <div style="font-weight:600;">${e.aircraft_registration || '-'}</div>
+                <div style="font-weight:500;">${e.aircraft_registration || '-'}</div>
                 <div style="font-size:0.8em; color:var(--text-light);">${e.aircraft_model || ''}</div>
             </td>
             
@@ -800,7 +851,7 @@ function renderTableRows(entries, showActions) {
             <td>${formatDuration(e.single_pilot_se)}</td>
             <td>${formatDuration(e.single_pilot_me)}</td>
             <td>${formatDuration(e.multi_pilot)}</td>
-            <td style="font-weight: 700;">${formatDuration(e.total_flight_time)}</td>
+            <td style="font-weight: 500;">${formatDuration(e.total_flight_time)}</td>
             
             <td>${e.name_pic || '-'}</td>
             

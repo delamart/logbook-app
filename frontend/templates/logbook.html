@@ -5,53 +5,59 @@
 {% block body_class %}page-logbook{% endblock %}
 
 {% block content %}
-<div class="card" id="logbook">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <!-- Filters -->
+<div class="card" id="logbook" style="padding: 0; overflow: hidden; border-radius: 0;">
+    <!-- Logbook Header -->
+    <div
+        style="display: flex; justify-content: space-between; align-items: center; padding: 40px; background: var(--surface); border-bottom: 1px solid var(--border);">
+        <div style="display: flex; gap: 16px; align-items: center;">
             <select id="time-filter" onchange="setTimeFilter(this.value)"
-                style="padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
-                <option value="all">All Time</option>
-                <option value="12">Last 12 Months</option>
-                <option value="3">Last 3 Months</option>
+                style="padding: 12px 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 0.85rem; appearance: none; border-radius: 0; min-width: 140px;">
+                <option value="all">Time: All</option>
+                <option value="12">Time: 12M</option>
+                <option value="3">Time: 3M</option>
             </select>
-            <input type="text" id="filter-input" placeholder="🔍 Filter..." onkeyup="filterEntries()"
-                style="width: 200px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; background: var(--bg); color: var(--text);">
+            <input type="text" id="filter-input" placeholder="Search entries..." onkeyup="filterEntries()"
+                style="width: 320px; padding: 12px 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 0.85rem; border-radius: 0;">
         </div>
 
-        <div style="display: flex; gap: 10px;">
-            <button class="secondary" onclick="addEntry()">Add Entry</button>
-            <button onclick="deleteAllEntries()" style="background: var(--danger);">Delete All</button>
+        <div style="display: flex; gap: 16px;">
+            <button class="secondary" onclick="addEntry()" style="font-size: 0.75rem; padding: 12px 24px;">Add
+                Entry</button>
+            <button onclick="deleteAllEntries()"
+                style="font-size: 0.75rem; padding: 12px 24px; border-color: var(--danger); background: transparent; color: var(--danger);">Delete
+                All</button>
         </div>
     </div>
+
+    <!-- Data Table -->
     <div class="table-container">
         <table id="master-table">
             <thead>
                 <tr>
-                    <th style="min-width: 90px; cursor: pointer;" onclick="sortBy('date')">Date ⬍</th>
-                    <th onclick="sortBy('departure_place')" style="cursor: pointer;">Depart ⬍</th>
-                    <th onclick="sortBy('arrival_place')" style="cursor: pointer;">Arrive ⬍</th>
-                    <th onclick="sortBy('aircraft_registration')" style="cursor: pointer;">Aircraft ⬍</th>
-                    <th onclick="sortBy('single_pilot_se')" style="cursor: pointer;">SE ⬍</th>
-                    <th onclick="sortBy('single_pilot_me')" style="cursor: pointer;">ME ⬍</th>
-                    <th onclick="sortBy('multi_pilot')" style="cursor: pointer;">Multi ⬍</th>
-                    <th onclick="sortBy('total_flight_time')" style="cursor: pointer;">Total ⬍</th>
-                    <th onclick="sortBy('name_pic')" style="cursor: pointer;">PIC Name ⬍</th>
-                    <th onclick="sortBy('landings_day')" style="cursor: pointer;">Ldgs ⬍</th>
-                    <th onclick="sortBy('time_night')" style="cursor: pointer;">Night ⬍</th>
-                    <th onclick="sortBy('time_ifr')" style="cursor: pointer;">IFR ⬍</th>
-                    <th onclick="sortBy('time_pic')" style="cursor: pointer;">PIC ⬍</th>
-                    <th onclick="sortBy('time_copi')" style="cursor: pointer;">Copi ⬍</th>
-                    <th onclick="sortBy('time_dual')" style="cursor: pointer;">Dual ⬍</th>
-                    <th onclick="sortBy('time_instructor')" style="cursor: pointer;">Instr ⬍</th>
-                    <th onclick="sortBy('remarks')" style="cursor: pointer;">Remarks ⬍</th>
-                    <th>Actions</th>
+                    <th style="cursor: pointer;" onclick="sortBy('date')">Date</th>
+                    <th onclick="sortBy('departure_place')" style="cursor: pointer;">Depart</th>
+                    <th onclick="sortBy('arrival_place')" style="cursor: pointer;">Arrive</th>
+                    <th onclick="sortBy('aircraft_registration')" style="cursor: pointer;">Aircraft</th>
+                    <th onclick="sortBy('single_pilot_se')" style="cursor: pointer;">SE</th>
+                    <th onclick="sortBy('single_pilot_me')" style="cursor: pointer;">ME</th>
+                    <th onclick="sortBy('multi_pilot')" style="cursor: pointer;">Multi</th>
+                    <th onclick="sortBy('total_flight_time')" style="cursor: pointer;">Total</th>
+                    <th onclick="sortBy('name_pic')" style="cursor: pointer;">PIC Name</th>
+                    <th onclick="sortBy('landings_day')" style="cursor: pointer;">Ldgs</th>
+                    <th onclick="sortBy('time_night')" style="cursor: pointer;">Night</th>
+                    <th onclick="sortBy('time_ifr')" style="cursor: pointer;">IFR</th>
+                    <th onclick="sortBy('time_pic')" style="cursor: pointer;">PIC</th>
+                    <th onclick="sortBy('time_copi')" style="cursor: pointer;">Copi</th>
+                    <th onclick="sortBy('time_dual')" style="cursor: pointer;">Dual</th>
+                    <th onclick="sortBy('time_instructor')" style="cursor: pointer;">Instr</th>
+                    <th onclick="sortBy('remarks')" style="cursor: pointer;">Remarks</th>
+                    <th style="text-align: right;">Actions</th>
                 </tr>
             </thead>
             <tbody id="master-tbody">
                 <tr>
-                    <td colspan="18" style="text-align: center; color: var(--text-light);">Loading entries...
-                    </td>
+                    <td colspan="18" style="text-align: center; color: var(--text-light); padding: 80px;">Synthesizing
+                        flight data...</td>
                 </tr>
             </tbody>
         </table>

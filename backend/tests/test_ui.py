@@ -32,8 +32,8 @@ def test_tools_page(page: Page):
     expect(page).to_have_title("Tools - Logbook Scanner Pro")
     
     # Check Import Options
-    expect(page.get_by_text("Scan New Logbook Page")).to_be_visible()
-    expect(page.get_by_text("Import from ForeFlight")).to_be_visible()
+    expect(page.get_by_text("Extract via API")).to_be_visible()
+    expect(page.get_by_text("ForeFlight Import")).to_be_visible()
 
 def test_manual_entry_creation_and_edit(page: Page):
     page.goto(f"{BASE_URL}/logbook")
@@ -64,8 +64,8 @@ def test_delete_entry(page: Page):
     expect(row).to_be_visible()
     
     # Delete
-    page.on("dialog", lambda dialog: dialog.accept()) 
     row.locator("button.delete").click()
+    page.locator("#custom-dialog-confirm").click()
     
     # Verify gone
     expect(page.get_by_text("Delete Me")).not_to_be_visible()

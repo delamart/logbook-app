@@ -5,31 +5,32 @@
 {% block body_class %}page-tools{% endblock %}
 
 {% block content %}
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
     <!-- Scan Tool -->
-    <div class="card">
-        <h3><i class="ri-camera-lens-line"></i> Scan New Logbook Page</h3>
-        <p style="color: var(--text-light); margin-bottom: 20px;">Upload an image of your logbook to automatically
-            extract entries using AI.</p>
-
+    <div class="card" style="padding: 40px; border-radius: 0;">
+        <div class="card-title">Extract via API</div>
+        <p style="color: var(--text-light); margin-bottom: 32px; font-size: 0.95rem; line-height: 1.5;">Automatically
+            digitize your logbook using the configured Vision AI model.</p>
 
         <div class="upload-section" onclick="document.getElementById('file-input').click()">
-            <div style="font-size: 3rem; margin-bottom: 10px;"><i class="ri-image-add-line"></i></div>
-            <strong>Click to Upload Image</strong>
-            <div style="color: var(--text-light); font-size: 0.9rem;">Supports JPG, PNG</div>
+            <div
+                style="font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px;">
+                Upload Image</div>
+            <div style="color: var(--text-light); font-size: 0.75rem;">JPG / PNG</div>
         </div>
     </div>
 
     <!-- CSV Import -->
-    <div class="card">
-        <h3><i class="ri-download-cloud-2-line"></i> Import from ForeFlight</h3>
-        <p style="color: var(--text-light); margin-bottom: 20px;">Import your digital logbook backup (CSV format)
-            directly.</p>
+    <div class="card" style="padding: 40px; border-radius: 0;">
+        <div class="card-title">ForeFlight Import</div>
+        <p style="color: var(--text-light); margin-bottom: 32px; font-size: 0.95rem; line-height: 1.5;">Import your
+            digital logbook backup directly from ForeFlight export data.</p>
 
         <div class="upload-section" onclick="document.getElementById('csv-input').click()">
-            <div style="font-size: 3rem; margin-bottom: 10px;"><i class="ri-file-excel-2-line"></i></div>
-            <strong>Click to Upload CSV</strong>
-            <div style="color: var(--text-light); font-size: 0.9rem;">ForeFlight Export Format</div>
+            <div
+                style="font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px;">
+                Upload CSV</div>
+            <div style="color: var(--text-light); font-size: 0.75rem;">ForeFlight Format</div>
         </div>
     </div>
 </div>
@@ -39,96 +40,107 @@
 <input type="file" id="csv-input" accept=".csv" style="display: none">
 
 <!-- Editor (Cropper) -->
-<div class="card editor-container" id="editor">
-    <h3>Crop Logbook Page</h3>
-    <div style="max-height: 60vh; margin: 20px 0;">
+<div class="card editor-container" id="editor" style="padding: 40px; border-radius: 0;">
+    <div class="card-title" style="text-align: left;">Image Selection Region</div>
+    <div style="max-height: 60vh; margin: 32px 0;">
         <img id="image" src="" style="max-width: 100%; display: block;">
     </div>
-    <div style="display: flex; gap: 10px; justify-content: center;">
-        <button class="secondary" onclick="cropper.rotate(-90)"><i class="ri-arrow-go-back-line"></i> Rotate</button>
-        <button class="secondary" onclick="cropper.rotate(90)">Rotate <i class="ri-arrow-go-forward-line"></i></button>
-        <button onclick="processImage()"><i class="ri-check-line"></i> Process Image</button>
-        <button class="secondary" onclick="location.reload()">Cancel</button>
+    <div style="display: flex; gap: 16px; justify-content: center;">
+        <button class="secondary" onclick="cropper.rotate(-90)">Rotate CCW</button>
+        <button class="secondary" onclick="cropper.rotate(90)">Rotate CW</button>
+        <button onclick="processImage()" style="background: var(--text); color: var(--bg);">Process Target</button>
+        <button class="secondary" onclick="location.reload()">Abort</button>
     </div>
 
     <!-- Initial Prompt Editor -->
     <details
-        style="margin-top: 20px; text-align: left; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--bg);">
-        <summary style="cursor: pointer; font-weight: 500; color: var(--text);"><i class="ri-settings-4-line"></i>
-            Advanced: Customize AI Prompt
+        style="margin-top: 40px; text-align: left; border: 1px solid var(--border); padding: 24px; background: var(--bg);">
+        <summary
+            style="cursor: pointer; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text); letter-spacing: 0.1em; text-transform: uppercase;">
+            Override Configuration (Advanced)
         </summary>
 
-        <div style="margin-top: 10px; margin-bottom: 10px;">
+        <div style="margin-top: 24px; margin-bottom: 16px;">
             <label for="initial-model-select"
-                style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem;">Select AI
-                Model:</label>
+                style="display: block; margin-bottom: 8px; font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;">Selection
+                Model</label>
             <select id="initial-model-select" class="model-select"
-                style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
-                <option value="" disabled selected>Loading models...</option>
+                style="width: 100%; padding: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--font-mono); font-size: 0.85rem; appearance: none; border-radius: 0;">
+                <option value="" disabled selected>Retrieving node list...</option>
             </select>
         </div>
 
         <textarea id="initial-prompt-editor"
-            style="width: 100%; height: 150px; padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-family: monospace; font-size: 0.85rem; background: var(--surface); color: var(--text);"></textarea>
+            style="width: 100%; height: 180px; padding: 16px; border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.85rem; background: var(--surface); color: var(--text); border-radius: 0; outline: none;"></textarea>
     </details>
-    <div id="loader" style="display: none; margin-top: 20px; font-weight: 600; color: var(--primary);">
-        <i class="ri-loader-4-line ri-spin"></i> AI is analyzing the page...
+    <div id="loader"
+        style="display: none; margin-top: 32px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--text); letter-spacing: 0.1em; text-transform: uppercase;">
+        Awaiting telemetry data...
     </div>
 </div>
 
 <!-- Validation / Import Zone -->
-<div class="card" id="validation-zone" style="display: none;">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+<div class="card" id="validation-zone" style="display: none; padding: 0; border-radius: 0;">
+    <div
+        style="display: flex; justify-content: space-between; align-items: start; padding: 40px; border-bottom: 1px solid var(--border);">
         <div>
-            <h2><i class="ri-search-eye-line"></i> Review Scanned Data</h2>
-            <p style="color: var(--text-light); margin-top: 5px;">Compare the image below with the extracted
-                data.</p>
+            <div class="card-title" style="margin: 0; border: none; padding: 0; font-size: 1.25rem;">Data Verification
+            </div>
+            <p style="color: var(--text-light); margin-top: 8px; font-size: 0.95rem;">Cross-reference extracted tokens
+                against the source capture.</p>
         </div>
-        <div style="display: flex; gap: 10px;">
-            <button class="success" onclick="saveEntries()"><i class="ri-save-line"></i> Confirm & Import</button>
-            <button class="secondary" onclick="location.reload()">Discard</button>
+        <div style="display: flex; gap: 16px;">
+            <button class="success" onclick="saveEntries()" style="padding: 12px 24px;">Confirm Transaction</button>
+            <button class="secondary" onclick="location.reload()" style="padding: 12px 24px;">Drop Table</button>
         </div>
     </div>
 
-    <!-- Advanced: Prompt Editor -->
-    <details id="ai-settings-details"
-        style="margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--bg);">
-        <summary style="cursor: pointer; font-weight: 500; color: var(--text);"><i class="ri-robot-line"></i> AI Prompt
-            Settings (Advanced)
-        </summary>
-        <div style="margin-top: 10px;">
-            <div style="margin-bottom: 10px;">
-                <label for="validation-model-select"
-                    style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem;">Select AI
-                    Model:</label>
-                <select id="validation-model-select" class="model-select"
-                    style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text);">
-                    <option value="" disabled selected>Loading models...</option>
-                </select>
-            </div>
+    <div style="padding: 40px;">
+        <!-- Advanced: Prompt Editor -->
+        <details id="ai-settings-details"
+            style="margin-bottom: 40px; border: 1px solid var(--border); padding: 24px; background: var(--bg);">
+            <summary
+                style="cursor: pointer; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text); letter-spacing: 0.1em; text-transform: uppercase;">
+                Agent Subsystem Settings
+            </summary>
+            <div style="margin-top: 24px;">
+                <div style="margin-bottom: 16px;">
+                    <label for="validation-model-select"
+                        style="display: block; margin-bottom: 8px; font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;">Inference
+                        Endpoint</label>
+                    <select id="validation-model-select" class="model-select"
+                        style="width: 100%; padding: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--font-mono); font-size: 0.85rem; appearance: none; border-radius: 0;">
+                        <option value="" disabled selected>Querying endpoints...</option>
+                    </select>
+                </div>
 
-            <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 10px;">Warning: Changing the
-                prompt may break the extraction if the JSON structure is not maintained.</p>
-            <textarea id="prompt-editor"
-                style="width: 100%; height: 200px; padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-family: monospace; font-size: 0.85rem; background: var(--surface); color: var(--text);"></textarea>
-            <div style="text-align: right; margin-top: 10px;">
-                <button onclick="rescanWithPrompt()"><i class="ri-refresh-line"></i> Re-Scan with Custom Prompt</button>
+                <p
+                    style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--danger); margin-bottom: 16px;">
+                    Warning: Deviation from structural schema may cause parse exceptions.</p>
+                <textarea id="prompt-editor"
+                    style="width: 100%; height: 200px; padding: 16px; border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.85rem; background: var(--surface); color: var(--text); border-radius: 0; outline: none;"></textarea>
+                <div style="text-align: right; margin-top: 16px;">
+                    <button onclick="rescanWithPrompt()">Retransmit Request</button>
+                </div>
             </div>
+        </details>
+
+        <!-- Review Image Container -->
+        <div id="review-image-container"
+            style="margin-bottom: 40px; border: 1px solid var(--border); text-align: center; background: var(--bg); padding: 24px;">
+            <img id="review-image" src="" style="max-width: 100%; height: auto; border: 1px solid var(--border);">
         </div>
-    </details>
 
-    <!-- Review Image Container -->
-    <div id="review-image-container"
-        style="margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; text-align: center; background: #f1f5f9;">
-        <img id="review-image" src="" style="max-width: 100%; height: auto;">
+        <div id="validation-table" class="table-container"
+            style="border: 1px solid var(--border); border-bottom: none;"></div>
+
+        <details id="debug-response-details" style="margin-top: 40px;">
+            <summary
+                style="cursor: pointer; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-light); letter-spacing: 0.1em; text-transform: uppercase;">
+                Inspect Transaction Payload (Debug)</summary>
+            <pre id="debug-pre"
+                style="background: var(--bg); padding: 24px; border: 1px solid var(--border); overflow: auto; max-height: 400px; margin-top: 16px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text);"></pre>
+        </details>
     </div>
-
-    <div id="validation-table"></div>
-
-    <details id="debug-response-details" style="margin-top: 20px;">
-        <summary style="cursor: pointer; color: var(--text-light);">Show Raw API Response (Debug)</summary>
-        <pre id="debug-pre"
-            style="background: #f1f5f9; padding: 15px; border-radius: 6px; overflow: auto; max-height: 300px; margin-top: 10px; font-size: 0.8rem;"></pre>
-    </details>
 </div>
 {% endblock %}
