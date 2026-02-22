@@ -135,7 +135,12 @@
         </div>
     </div>
 
-    <div id="validation-table" class="table-container" style="border-top: 1px solid var(--border);">
+    <div id="validation-table">
+        <!-- Validation Data Table via Component -->
+        {% with table_id="validation-table-el", tbody_id="validation-tbody", select_all_id="validationAllCheckbox",
+        is_validation=true, show_actions=true %}
+        {% include 'components/table.html' %}
+        {% endwith %}
     </div>
 
     <div style="padding: 40px; padding-top: 40px;">

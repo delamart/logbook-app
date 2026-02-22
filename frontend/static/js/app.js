@@ -445,7 +445,8 @@ function showValidation(data, isCSV = false) {
         document.getElementById('debug-pre').textContent = JSON.stringify(data.raw_json, null, 2);
     }
 
-    document.getElementById('validation-table').innerHTML = renderTable(currentExtractedEntries, true);
+    const tbody = document.getElementById('validation-tbody');
+    if (tbody) tbody.innerHTML = renderTableRows(currentExtractedEntries, true);
 }
 
 function saveEntries() {
@@ -560,7 +561,8 @@ function toggleEdit(id) {
     editingRowId = id;
     renderMasterTable();
     if (document.getElementById('validation-zone').style.display === 'block') {
-        document.getElementById('validation-table').innerHTML = renderTable(currentExtractedEntries, true);
+        const tbody = document.getElementById('validation-tbody');
+        if (tbody) tbody.innerHTML = renderTableRows(currentExtractedEntries, true);
     }
 }
 
@@ -568,7 +570,8 @@ function cancelEdit() {
     editingRowId = null;
     renderMasterTable();
     if (document.getElementById('validation-zone').style.display === 'block') {
-        document.getElementById('validation-table').innerHTML = renderTable(currentExtractedEntries, true);
+        const tbody = document.getElementById('validation-tbody');
+        if (tbody) tbody.innerHTML = renderTableRows(currentExtractedEntries, true);
     }
 }
 
@@ -613,7 +616,8 @@ function saveInline(id) {
             // Keep ID
             currentExtractedEntries[idx].id = id;
             editingRowId = null;
-            document.getElementById('validation-table').innerHTML = renderTable(currentExtractedEntries, true);
+            const tbody = document.getElementById('validation-tbody');
+            if (tbody) tbody.innerHTML = renderTableRows(currentExtractedEntries, true);
         }
         return;
     }
@@ -693,8 +697,8 @@ async function deleteEntry(id) {
     if (!(await customConfirm("Are you sure you want to delete this entry?"))) return;
 
     if (String(id).startsWith('temp-')) {
-        currentExtractedEntries = currentExtractedEntries.filter(e => e.id !== id);
-        document.getElementById('validation-table').innerHTML = renderTable(currentExtractedEntries, true);
+        const tbody = document.getElementById('validation-tbody');
+        if (tbody) tbody.innerHTML = renderTableRows(currentExtractedEntries, true);
         return;
     }
 
@@ -733,39 +737,6 @@ function escapeAttribute(str) {
         .replace(/'/g, '&#39;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
-}
-
-function renderTable(entries, showActions) {
-    return `
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 40px; padding: 12px 16px;"><input type="checkbox" class="validationAllCheckbox" onchange="toggleSelectAll(this.checked, true)"></th>
-                        <th style="min-width: 90px;">Date</th>
-                        <th>Depart</th>
-                        <th>Arrive</th>
-                        <th>Aircraft</th>
-                        <th>SE</th>
-                        <th>ME</th>
-                        <th>Multi</th>
-                        <th>Total</th>
-                        <th>PIC Name</th>
-                        <th>Ldgs</th>
-                        <th>Night</th>
-                        <th>IFR</th>
-                        <th>PIC</th>
-                        <th>Copi</th>
-                        <th>Dual</th>
-                        <th>Instr</th>
-                        <th>Remarks</th>
-                        ${showActions ? '<th style="text-align: right;">Actions</th>' : ''}
-                    </tr>
-                </thead>
-                <tbody>${renderTableRows(entries, showActions)}</tbody>
-            </table>
-        </div>
-    `;
 }
 
 function formatDatePretty(dateStr) {
@@ -951,7 +922,8 @@ function deleteSelectedEntries(isValidation = false) {
         if (isValidation) {
             // In-Memory deletion for Validation zone
             currentExtractedEntries = currentExtractedEntries.filter(e => !idsToDelete.includes(e.id));
-            document.getElementById('validation-table').innerHTML = renderTable(currentExtractedEntries, true);
+            const tbody = document.getElementById('validation-tbody');
+            if (tbody) tbody.innerHTML = renderTableRows(currentExtractedEntries, true);
             const selectAllCb = document.querySelector('.validationAllCheckbox');
             if (selectAllCb) selectAllCb.checked = false;
             updateSelectedCount(true);

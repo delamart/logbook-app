@@ -1,0 +1,70 @@
+{#
+Table Component
+Args:
+table_id (str): HTML ID for the table element
+tbody_id (str): HTML ID for the tbody element
+select_all_id (str): HTML ID for the header select-all checkbox
+is_validation (bool): Whether this table is used for import validation (enables/disables sorting)
+show_actions (bool): Whether to show the actions column
+#}
+
+<div class="table-container">
+    <table id="{{ table_id }}">
+        <thead>
+            <tr>
+                <th style="width: 40px; padding: 12px 16px;">
+                    <input type="checkbox" id="{{ select_all_id }}"
+                        onchange="toggleSelectAll(this.checked{% if is_validation %}, true{% endif %})">
+                </th>
+                {% if is_validation %}
+                <th style="min-width: 90px;">Date</th>
+                <th>Depart</th>
+                <th>Arrive</th>
+                <th>Aircraft</th>
+                <th>SE</th>
+                <th>ME</th>
+                <th>Multi</th>
+                <th>Total</th>
+                <th>PIC Name</th>
+                <th>Ldgs</th>
+                <th>Night</th>
+                <th>IFR</th>
+                <th>PIC</th>
+                <th>Copi</th>
+                <th>Dual</th>
+                <th>Instr</th>
+                <th>Remarks</th>
+                {% else %}
+                <th style="cursor: pointer;" onclick="sortBy('date')">Date</th>
+                <th onclick="sortBy('departure_place')" style="cursor: pointer;">Depart</th>
+                <th onclick="sortBy('arrival_place')" style="cursor: pointer;">Arrive</th>
+                <th onclick="sortBy('aircraft_registration')" style="cursor: pointer;">Aircraft</th>
+                <th onclick="sortBy('single_pilot_se')" style="cursor: pointer;">SE</th>
+                <th onclick="sortBy('single_pilot_me')" style="cursor: pointer;">ME</th>
+                <th onclick="sortBy('multi_pilot')" style="cursor: pointer;">Multi</th>
+                <th onclick="sortBy('total_flight_time')" style="cursor: pointer;">Total</th>
+                <th onclick="sortBy('name_pic')" style="cursor: pointer;">PIC Name</th>
+                <th onclick="sortBy('landings_day')" style="cursor: pointer;">Ldgs</th>
+                <th onclick="sortBy('time_night')" style="cursor: pointer;">Night</th>
+                <th onclick="sortBy('time_ifr')" style="cursor: pointer;">IFR</th>
+                <th onclick="sortBy('time_pic')" style="cursor: pointer;">PIC</th>
+                <th onclick="sortBy('time_copi')" style="cursor: pointer;">Copi</th>
+                <th onclick="sortBy('time_dual')" style="cursor: pointer;">Dual</th>
+                <th onclick="sortBy('time_instructor')" style="cursor: pointer;">Instr</th>
+                <th onclick="sortBy('remarks')" style="cursor: pointer;">Remarks</th>
+                {% endif %}
+                {% if show_actions %}
+                <th style="text-align: right;">Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody id="{{ tbody_id }}">
+            {% if not is_validation %}
+            <tr>
+                <td colspan="19" style="text-align: center; color: var(--text-light); padding: 80px;">Synthesizing
+                    flight data...</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>

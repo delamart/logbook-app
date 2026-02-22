@@ -80,7 +80,12 @@
         </div>
     </div>
 
-    <div id="validation-table" class="table-container" style="border-top: 1px solid var(--border);">
+    <div id="validation-table">
+        <!-- Validation Data Table via Component -->
+        {% with table_id="validation-table-el", tbody_id="validation-tbody", select_all_id="validationAllCheckbox",
+        is_validation=true, show_actions=true %}
+        {% include 'components/table.html' %}
+        {% endwith %}
     </div>
 
     <div style="padding: 40px; padding-top: 40px;">
@@ -170,40 +175,10 @@
                 style="width: 240px; padding: 12px 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 0.85rem; border-radius: 0;">
         </div>
     </div>
-    <div class="table-container">
-        <table id="master-table">
-            <thead>
-                <tr>
-                    <th style="width: 40px; padding: 12px 16px;"><input type="checkbox" id="selectAllCheckbox"
-                            onchange="toggleSelectAll(this.checked)"></th>
-                    <th style="cursor: pointer;" onclick="sortBy('date')">Date</th>
-                    <th onclick="sortBy('departure_place')" style="cursor: pointer;">Depart</th>
-                    <th onclick="sortBy('arrival_place')" style="cursor: pointer;">Arrive</th>
-                    <th onclick="sortBy('aircraft_registration')" style="cursor: pointer;">Aircraft</th>
-                    <th onclick="sortBy('single_pilot_se')" style="cursor: pointer;">SE</th>
-                    <th onclick="sortBy('single_pilot_me')" style="cursor: pointer;">ME</th>
-                    <th onclick="sortBy('multi_pilot')" style="cursor: pointer;">Multi</th>
-                    <th onclick="sortBy('total_flight_time')" style="cursor: pointer;">Total</th>
-                    <th onclick="sortBy('name_pic')" style="cursor: pointer;">PIC Name</th>
-                    <th onclick="sortBy('landings_day')" style="cursor: pointer;">Ldgs</th>
-                    <th onclick="sortBy('time_night')" style="cursor: pointer;">Night</th>
-                    <th onclick="sortBy('time_ifr')" style="cursor: pointer;">IFR</th>
-                    <th onclick="sortBy('time_pic')" style="cursor: pointer;">PIC</th>
-                    <th onclick="sortBy('time_copi')" style="cursor: pointer;">Copi</th>
-                    <th onclick="sortBy('time_dual')" style="cursor: pointer;">Dual</th>
-                    <th onclick="sortBy('time_instructor')" style="cursor: pointer;">Instr</th>
-                    <th onclick="sortBy('remarks')" style="cursor: pointer;">Remarks</th>
-                    <th style="text-align: right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody id="master-tbody">
-                <tr>
-                    <td colspan="18" style="text-align: center; color: var(--text-light); padding: 80px;">Synthesizing
-                        flight data...
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <!-- Data Table via Component -->
+    {% with table_id="master-table", tbody_id="master-tbody", select_all_id="selectAllCheckbox", is_validation=false,
+    show_actions=true %}
+    {% include 'components/table.html' %}
+    {% endwith %}
 </div>
 {% endblock %}
