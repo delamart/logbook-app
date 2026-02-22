@@ -51,14 +51,14 @@ class TestOCRParsing(unittest.TestCase):
         self.assertEqual(entry1['departure_place'], "LSGG")
         self.assertEqual(entry1['aircraft_registration'], "HB-KLZ")
         
-        # Check Durations (1:30 -> 1.5)
-        self.assertEqual(entry1['single_pilot_se'], 1.5)
-        self.assertEqual(entry1['total_flight_time'], 1.5)
-        self.assertEqual(entry1['time_ifr'], 0.33) # 20 mins is 0.33
+        # Check Durations (1:30 -> 90)
+        self.assertEqual(entry1['single_pilot_se'], 90)
+        self.assertEqual(entry1['total_flight_time'], 90)
+        self.assertEqual(entry1['time_ifr'], 20) # 20 mins is 20
         
-        # Check Nulls became 0.0
-        self.assertEqual(entry1['single_pilot_me'], 0.0)
-        self.assertEqual(entry1['multi_pilot'], 0.0)
+        # Check Nulls became 0
+        self.assertEqual(entry1['single_pilot_me'], 0)
+        self.assertEqual(entry1['multi_pilot'], 0)
         
     def test_date_fallback(self):
         """Test date sanitization"""
@@ -71,7 +71,7 @@ class TestOCRParsing(unittest.TestCase):
         """Test that float inputs for duration work directly"""
         parsed = self.engine.parse_logbook_data(self.mock_json)
         entry2 = parsed[1]
-        self.assertEqual(entry2['total_flight_time'], 1.5)
+        self.assertEqual(entry2['total_flight_time'], 90)
 
     def test_space_separated_durations(self):
         """Test parsing of 'HH MM' format (e.g., '1 06')"""
@@ -87,6 +87,6 @@ class TestOCRParsing(unittest.TestCase):
         parsed = self.engine.parse_logbook_data(bad_json)
         entry = parsed[0]
         
-        self.assertEqual(entry['total_flight_time'], 1.1)
-        self.assertEqual(entry['single_pilot_se'], 1.5)
-        self.assertEqual(entry['time_pic'], 0.75)
+        self.assertEqual(entry['total_flight_time'], 66)
+        self.assertEqual(entry['single_pilot_se'], 90)
+        self.assertEqual(entry['time_pic'], 45)

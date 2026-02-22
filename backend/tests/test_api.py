@@ -46,7 +46,7 @@ class TestAPI(unittest.TestCase):
             "date": "2023-01-01",
             "departure_place": "TEST",
             "arrival_place": "DEST",
-            "total_flight_time": 1.5,
+            "total_flight_time": 90,
             "remarks": "Test Flight"
         }
         response = self.client.post("/entries/create", json=new_entry)
@@ -65,8 +65,8 @@ class TestAPI(unittest.TestCase):
 
     def test_save_bulk_entries(self):
         entries = [
-            {"date": "2023-01-01", "total_flight_time": 1.0, "remarks": "Bulk 1"},
-            {"date": "2023-01-02", "total_flight_time": 2.0, "remarks": "Bulk 2"}
+            {"date": "2023-01-01", "total_flight_time": 60, "remarks": "Bulk 1"},
+            {"date": "2023-01-02", "total_flight_time": 120, "remarks": "Bulk 2"}
         ]
         response = self.client.post("/save_entries/", json=entries)
         self.assertEqual(response.status_code, 200)
@@ -81,12 +81,12 @@ class TestAPI(unittest.TestCase):
         entry_id = create_resp.json()["id"]
 
         # Update
-        update_data = {"remarks": "Updated", "total_flight_time": 5.0}
+        update_data = {"remarks": "Updated", "total_flight_time": 300}
         response = self.client.put(f"/entries/{entry_id}", json=update_data)
         self.assertEqual(response.status_code, 200)
         updated = response.json()
         self.assertEqual(updated["remarks"], "Updated")
-        self.assertEqual(updated["total_flight_time"], 5.0)
+        self.assertEqual(updated["total_flight_time"], 300)
 
         # Verify persistence
         get_resp = self.client.get("/entries/")
@@ -200,14 +200,14 @@ class TestAPI(unittest.TestCase):
         
         # Check Entry 1 (Decimal duration)
         entry1 = next(e for e in entries if e["date"] == "2023-05-01")
-        self.assertEqual(entry1["total_flight_time"], 1.5)
+        self.assertEqual(entry1["total_flight_time"], 90)
         self.assertEqual(entry1["departure_place"], "LSGC")
         self.assertEqual(entry1["aircraft_model"], "P2006T") # Mapped from Aircraft Table
-        self.assertEqual(entry1["single_pilot_me"], 1.5) # ME Class -> ME Time
+        self.assertEqual(entry1["single_pilot_me"], 90) # ME Class -> ME Time
         
         # Check Entry 2 (HH:MM duration)
         entry2 = next(e for e in entries if e["date"] == "2023-05-02")
-        self.assertEqual(entry2["total_flight_time"], 1.0)
+        self.assertEqual(entry2["total_flight_time"], 60)
         self.assertEqual(entry2["landings_night"], 1)
 
 if __name__ == '__main__':

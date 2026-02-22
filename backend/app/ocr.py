@@ -189,9 +189,8 @@ class OCREngine:
                 return str(date.today())
 
         def parse_duration(value):
-            """Converts 'HH:MM' string or float/int to decimal hours float."""
-            if not value:
-                return 0.0
+            """Converts 'HH:MM' string or decimal hours to integer total minutes."""
+            if not value: return 0
             
             s = str(value).strip()
             
@@ -205,15 +204,15 @@ class OCREngine:
                     parts = s.split(":")
                     hours = int(parts[0])
                     minutes = int(parts[1])
-                    return round(hours + (minutes / 60.0), 2)
+                    return (hours * 60) + minutes
                 except (ValueError, IndexError):
                     pass
             
             # Handle standard float/int
             try:
-                return float(s)
+                return int(round(float(s) * 60))
             except ValueError:
-                return 0.0
+                return 0
 
         processed_entries = []
         for e in entries:

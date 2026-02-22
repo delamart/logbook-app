@@ -577,17 +577,17 @@ function saveInline(id) {
     const updateData = {};
     const inputs = row.querySelectorAll('input');
 
-    // Helper to parse HH:MM or decimal back to decimal float
+    // Helper to parse HH:MM or decimal back to integer minutes
     const parseDuration = (val) => {
         if (!val) return null;
         if (typeof val === 'string' && val.includes(':')) {
             const parts = val.split(':');
             const h = parseInt(parts[0], 10) || 0;
             const m = parseInt(parts[1], 10) || 0;
-            return parseFloat((h + (m / 60)).toFixed(2));
+            return (h * 60) + m;
         }
         const floatVal = parseFloat(val);
-        return isNaN(floatVal) ? null : floatVal;
+        return isNaN(floatVal) ? null : Math.round(floatVal * 60);
     };
 
     inputs.forEach(input => {
@@ -704,11 +704,16 @@ async function deleteEntry(id) {
 
 
 
-function formatDuration(decimal) {
-    if (!decimal) return '-';
-    const hours = Math.floor(decimal);
-    const minutes = Math.round((decimal - hours) * 60);
-    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+function formatDuration(minutesArray) {
+    if (minutesArray == null || minutesArray === '') return '-';
+    // The database now stores INT minutes
+    const mins = parseInt(minutesArray, 10);
+    if (isNaN(mins)) return '-';
+    if (mins === 0) return '0:00';
+
+    const hours = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${hours}:${m.toString().padStart(2, '0')}`;
 }
 
 // Utility to escape HTML to prevent XSS in table rendering

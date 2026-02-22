@@ -392,21 +392,22 @@ async def import_foreflight_csv(file: UploadFile = File(...)):
                 break
 
             def parse_duration(val):
-                """Converts 'HH:MM' string to float hours."""
-                if not val: return 0.0
+                """Converts 'HH:MM' string or decimal hours to integer total minutes."""
+                if not val: return 0
                 if isinstance(val, str):
                     val = val.strip()
-                if not val: return 0.0
+                if not val: return 0
                 try:
                     if ':' in val:
                         parts = val.split(':')
-                        hours = float(parts[0])
-                        minutes = float(parts[1])
-                        return hours + (minutes / 60.0)
+                        hours = int(parts[0])
+                        minutes = int(parts[1])
+                        return (hours * 60) + minutes
                     else:
-                        return float(val)
+                        # Convert float hours to int minutes
+                        return int(round(float(val) * 60))
                 except:
-                    return 0.0
+                    return 0
 
             # Helper to safely get string
             def get_str(key):
@@ -414,9 +415,13 @@ async def import_foreflight_csv(file: UploadFile = File(...)):
                 return val.strip() if val else ''
 
             # ForeFlight Header Mappings
-            day_ldgs = int(parse_duration(row.get('DayLandingsFullStop') or row.get('LandingsDay')))
-            night_ldgs = int(parse_duration(row.get('NightLandingsFullStop') or row.get('LandingsNight')))
-            all_ldgs = int(parse_duration(row.get('AllLandings')))
+            def get_int(key):
+                try: return int(row.get(key) or 0)
+                except: return 0
+                
+            day_ldgs = get_int('DayLandingsFullStop') or get_int('LandingsDay')
+            night_ldgs = get_int('NightLandingsFullStop') or get_int('LandingsNight')
+            all_ldgs = get_int('AllLandings')
             
             if day_ldgs == 0 and night_ldgs == 0 and all_ldgs > 0:
                 day_ldgs = all_ldgs
@@ -434,9 +439,9 @@ async def import_foreflight_csv(file: UploadFile = File(...)):
             
             # Determine correct column for time (SE, ME, Multi-Pilot)
             # Default to SE if unknown
-            se_time = 0.0
-            me_time = 0.0
-            mp_time = 0.0
+            se_time = 0
+            me_time = 0
+            mp_time = 0
             
             # Check for multi-pilot first (Logbook rules may vary, simplified logic here)
             # If SIC time exists, assume Multi Pilot? 

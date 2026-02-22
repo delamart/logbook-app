@@ -17,12 +17,12 @@ class LogEntry(SQLModel, table=True):
     aircraft_registration: Optional[str] = None # previously aircraft_ident
     
     # 3. Single/Multi Pilot Times (Durations)
-    single_pilot_se: float = Field(default=0.0)
-    single_pilot_me: float = Field(default=0.0)
-    multi_pilot: float = Field(default=0.0)
+    single_pilot_se: int = Field(default=0)
+    single_pilot_me: int = Field(default=0)
+    multi_pilot: int = Field(default=0)
     
     # 4. Totals
-    total_flight_time: float = Field(default=0.0)
+    total_flight_time: int = Field(default=0)
     name_pic: Optional[str] = None
     
     # 5. Landings
@@ -30,14 +30,14 @@ class LogEntry(SQLModel, table=True):
     landings_night: int = Field(default=0)
     
     # 6. Operational Condition
-    time_night: float = Field(default=0.0)
-    time_ifr: float = Field(default=0.0)
+    time_night: int = Field(default=0)
+    time_ifr: int = Field(default=0)
     
     # 7. Pilot Function
-    time_pic: float = Field(default=0.0)
-    time_copi: float = Field(default=0.0)
-    time_dual: float = Field(default=0.0)
-    time_instructor: float = Field(default=0.0)
+    time_pic: int = Field(default=0)
+    time_copi: int = Field(default=0)
+    time_dual: int = Field(default=0)
+    time_instructor: int = Field(default=0)
     
     # 8. Remarks
     remarks: Optional[str] = None
