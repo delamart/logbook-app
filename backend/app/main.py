@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import SQLModel, create_engine, Session, select
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import List, Optional
 from .models import LogEntry
 import shutil
@@ -177,7 +177,9 @@ async def save_entries(entries: List[LogEntry]):
             # item is already a LogEntry model because of Pydantic
             # ensure created_at is set if missing
             if not item.created_at:
-                item.created_at = str(date.today())
+                item.created_at = datetime.now(timezone.utc)
+            if isinstance(item.date, str):
+                item.date = datetime.strptime(item.date, "%Y-%m-%d").date()
             session.add(item)
             saved_entries.append(item)
         session.commit()
@@ -221,6 +223,9 @@ async def update_entry(entry_id: int, entry_data: LogEntry):
         for key, value in entry_data_dict.items():
             if key != "id": # Don't update ID
                 setattr(db_entry, key, value)
+                
+        if isinstance(db_entry.date, str):
+            db_entry.date = datetime.strptime(db_entry.date, "%Y-%m-%d").date()
         
         session.add(db_entry)
         session.commit()
@@ -231,7 +236,9 @@ async def update_entry(entry_id: int, entry_data: LogEntry):
 async def create_entry(entry: LogEntry):
     with Session(engine) as session:
         if not entry.created_at:
-            entry.created_at = str(date.today())
+            entry.created_at = datetime.now(timezone.utc)
+        if isinstance(entry.date, str):
+            entry.date = datetime.strptime(entry.date, "%Y-%m-%d").date()
         session.add(entry)
         session.commit()
         session.refresh(entry)
@@ -457,6 +464,11 @@ async def import_foreflight_csv(file: UploadFile = File(...)):
             else:
                  se_time = total_time
 
+            if isinstance(raw_date, str):
+                try:
+                    raw_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+                except ValueError:
+                    raw_date = datetime.utcnow().date()
             entry_obj = LogEntry(
                 date=raw_date,
                 departure_place=get_str('From'),
