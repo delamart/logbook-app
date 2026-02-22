@@ -55,6 +55,21 @@
         </div>
     </div>
 
+    <!-- Remarks Modal -->
+    <div id="remarks-modal-overlay" class="custom-dialog-overlay" style="display: none;">
+        <div class="custom-dialog" style="max-width: 600px;">
+            <div
+                style="font-weight: 500; margin-bottom: 24px; font-family: var(--font-mono); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-light);">
+                Flight Remarks</div>
+            <div id="remarks-dialog-content"
+                style="font-family: var(--font-sans); color: var(--text); font-size: 1rem; line-height: 1.6; white-space: pre-wrap; margin-bottom: 32px; max-height: 50vh; overflow-y: auto;">
+            </div>
+            <div class="custom-dialog-actions">
+                <button class="secondary" onclick="closeRemarksModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>

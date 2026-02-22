@@ -693,6 +693,18 @@ async function deleteAllEntries() {
     }
 }
 
+// Remarks Modal
+function openRemarksModal(text) {
+    if (!text) return;
+    document.getElementById('remarks-dialog-content').textContent = text;
+    document.getElementById('remarks-modal-overlay').classList.add('active');
+}
+
+function closeRemarksModal() {
+    document.getElementById('remarks-modal-overlay').classList.remove('active');
+    document.getElementById('remarks-dialog-content').textContent = '';
+}
+
 async function deleteEntry(id) {
     if (!(await customConfirm("Are you sure you want to delete this entry?"))) return;
 
@@ -857,7 +869,11 @@ function renderTableRows(entries, showActions) {
             <td>${formatDurationHTML(e.time_dual)}</td>
             <td>${formatDurationHTML(e.time_instructor)}</td>
             
-            <td style="color: var(--text-light); font-size: 0.85em; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${e.remarks || ''}</td>
+            <td style="color: var(--text-light); font-size: 0.85em; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${e.remarks ? 'cursor: pointer; text-decoration: underline; text-decoration-style: dotted;' : ''}"
+                ${e.remarks ? `onclick="openRemarksModal(this.getAttribute('data-remarks'))" data-remarks="${escapeAttribute(e.remarks)}"` : ''}
+                title="Click to read full remarks">
+                ${e.remarks || ''}
+            </td>
             
             ${showActions ? `
                 <td>
