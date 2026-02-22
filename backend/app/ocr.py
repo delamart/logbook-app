@@ -1,7 +1,5 @@
 from PIL import Image
 import hashlib
-import torch
-from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 import warnings
 # Suppress the "support has ended" warning from google-generativeai
 with warnings.catch_warnings():

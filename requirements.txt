@@ -4,16 +4,10 @@ sqlmodel
 python-multipart
 jinja2
 pillow
-opencv-python-headless
-httpx
-transformers
-torch
-torchvision
 google-generativeai
 python-dotenv
 pytest
 pytest-playwright
-httpx
 airportsdata
 supabase
 psycopg2-binary
