@@ -709,11 +709,19 @@ function formatDuration(minutesArray) {
     // The database now stores INT minutes
     const mins = parseInt(minutesArray, 10);
     if (isNaN(mins)) return '-';
-    if (mins === 0) return '0:00';
+    if (mins === 0) return '-';
 
     const hours = Math.floor(mins / 60);
     const m = mins % 60;
     return `${hours}:${m.toString().padStart(2, '0')}`;
+}
+
+function formatDurationHTML(val) {
+    const formatted = formatDuration(val);
+    if (formatted === '-') {
+        return '<span style="color: var(--text-light);">-</span>';
+    }
+    return formatted;
 }
 
 // Utility to escape HTML to prevent XSS in table rendering
@@ -858,10 +866,10 @@ function renderTableRows(entries, showActions) {
             </td>
             
             <!-- Durations -->
-            <td>${formatDuration(e.single_pilot_se)}</td>
-            <td>${formatDuration(e.single_pilot_me)}</td>
-            <td>${formatDuration(e.multi_pilot)}</td>
-            <td style="font-weight: 500;">${formatDuration(e.total_flight_time)}</td>
+            <td>${formatDurationHTML(e.single_pilot_se)}</td>
+            <td>${formatDurationHTML(e.single_pilot_me)}</td>
+            <td>${formatDurationHTML(e.multi_pilot)}</td>
+            <td style="font-weight: 500;">${formatDurationHTML(e.total_flight_time)}</td>
             
             <td>${e.name_pic || '-'}</td>
             
@@ -869,14 +877,14 @@ function renderTableRows(entries, showActions) {
             <td>${(e.landings_day || 0)}/${(e.landings_night || 0)}</td>
             
             <!-- Conditions -->
-            <td>${formatDuration(e.time_night)}</td>
-            <td>${formatDuration(e.time_ifr)}</td>
+            <td>${formatDurationHTML(e.time_night)}</td>
+            <td>${formatDurationHTML(e.time_ifr)}</td>
             
             <!-- Function -->
-            <td>${formatDuration(e.time_pic)}</td>
-            <td>${formatDuration(e.time_copi)}</td>
-            <td>${formatDuration(e.time_dual)}</td>
-            <td>${formatDuration(e.time_instructor)}</td>
+            <td>${formatDurationHTML(e.time_pic)}</td>
+            <td>${formatDurationHTML(e.time_copi)}</td>
+            <td>${formatDurationHTML(e.time_dual)}</td>
+            <td>${formatDurationHTML(e.time_instructor)}</td>
             
             <td style="color: var(--text-light); font-size: 0.85em; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${e.remarks || ''}</td>
             
