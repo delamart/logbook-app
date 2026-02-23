@@ -1,3 +1,4 @@
+{% if user %}
 <aside class="sidebar">
     <div class="sidebar-header">
         <div class="logo">
@@ -36,12 +37,15 @@
     </nav>
 
     <div class="sidebar-footer">
-        <div class="user-info">
-            <div class="avatar">P</div>
-            <div class="details">
-                <span class="name">Pilot</span>
-                <span class="role">Free Plan</span>
+        <a href="/account" style="text-decoration: none;">
+            <div class="user-info">
+                <div class="avatar">{{ user.email[0] | upper }}</div>
+                <div class="details">
+                    <span class="name">{{ user.email.split('@')[0] }}</span>
+                    <span class="role">Pilot</span>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 </aside>
+{% endif %}

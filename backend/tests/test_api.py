@@ -4,9 +4,15 @@ import json
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, create_engine, Session
 from sqlmodel.pool import StaticPool
-from backend.app.main import app
+from backend.app.main import app, get_current_user, get_current_user_optional, get_session
 import backend.app.main as main_module
 from backend.app.models import LogEntry
+
+def override_get_current_user():
+    return {"id": "test-user-id", "email": "test@example.com"}
+
+app.dependency_overrides[get_current_user] = override_get_current_user
+app.dependency_overrides[get_current_user_optional] = override_get_current_user
 
 class TestAPI(unittest.TestCase):
     def setUp(self):
@@ -23,11 +29,19 @@ class TestAPI(unittest.TestCase):
         self.original_engine = main_module.engine
         main_module.engine = self.test_engine
         
+        # Override get_session to yield a standard SQLite session instead of trying to run Postgres SET LOCAL
+        def override_get_session():
+            with Session(self.test_engine) as session:
+                yield session
+                
+        app.dependency_overrides[get_session] = override_get_session
+        
         self.client = TestClient(app)
 
     def tearDown(self):
         # Restore the original engine
         main_module.engine = self.original_engine
+        app.dependency_overrides.pop(get_session, None)
         SQLModel.metadata.drop_all(self.test_engine)
 
     def test_read_root(self):

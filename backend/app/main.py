@@ -1,8 +1,11 @@
-from fastapi import FastAPI, UploadFile, File, Request, Form
+from fastapi import FastAPI, UploadFile, File, Request, Form, Depends, HTTPException, status, Response
+from fastapi.responses import RedirectResponse
+import jwt
 from contextlib import asynccontextmanager
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import SQLModel, create_engine, Session, select
+from sqlalchemy import text
 from datetime import date, datetime, timezone
 from typing import List, Optional
 from .models import LogEntry
@@ -17,22 +20,54 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "super-secret-jwt-token-with-at-least-32-characters-long")
+
+def get_current_user_optional(request: Request):
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    try:
+        if supabase:
+            res = supabase.auth.get_user(jwt=token)
+            if res.user:
+                return {"id": res.user.id, "email": res.user.email}
+        # Fallback to JWT decode if someone wants a detached setup
+        payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated")
+        return {"id": payload.get("sub"), "email": payload.get("email")}
+    except Exception as e:
+        print(f"Auth verification error: {e}")
+        return None
+
+def get_current_user(request: Request):
+    user = get_current_user_optional(request)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+    return user
+
+def get_session(user: dict = Depends(get_current_user)):
+    """Provides a database session with the RLS context initialized."""
+    with Session(engine) as session:
+        # SET LOCAL only applies to the current transaction
+        # Supabase RLS policies expect "request.jwt.claim.sub" to contain the user ID.
+        session.execute(text(f"SET LOCAL request.jwt.claim.sub = '{user['id']}';"))
+        yield session
+
 airports_db = airportsdata.load('ICAO')
 
 # Database Setup
 # Database Setup
-sqlite_file_name = "backend/data/logbook.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
-# Use DATABASE_URL from environment for Supabase/Postgres
 database_url = os.getenv("DATABASE_URL")
 if not database_url:
-    print("WARNING: DATABASE_URL not found, falling back to SQLite")
-    engine = create_engine(sqlite_url, echo=True)
-else:
-    # Ensure compat with psycopg2
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-    engine = create_engine(database_url, echo=True)
+    raise RuntimeError("CRITICAL ERROR: DATABASE_URL not found. Postgres is required for Row Level Security (RLS). SQLite fallback is disabled.")
+
+# Ensure compat with psycopg2
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+engine = create_engine(database_url, echo=True)
 
 # Supabase Client Setup
 supabase_url = os.getenv("SUPABASE_URL")
@@ -79,33 +114,97 @@ app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 templates = Jinja2Templates(directory="frontend/templates")
 
+from pydantic import BaseModel
+
+class AuthUser(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/auth/register")
+async def register(auth_data: AuthUser):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not configured")
+    try:
+        res = supabase.auth.sign_up({"email": auth_data.email, "password": auth_data.password})
+        return {"message": "Registration successful", "user": res.user.id if res.user else None}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/login")
+async def login(auth_data: AuthUser, response: Response):
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase not configured")
+    try:
+        res = supabase.auth.sign_in_with_password({"email": auth_data.email, "password": auth_data.password})
+        if res.session:
+            response.set_cookie(
+                key="access_token",
+                value=res.session.access_token,
+                httponly=True,
+                samesite="lax",
+                max_age=3600*24*7
+            )
+            return {"message": "Login successful"}
+        raise HTTPException(status_code=400, detail="Login failed")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/auth/logout")
+async def logout(response: Response):
+    response.delete_cookie("access_token")
+    return {"message": "Logged out"}
+
 @app.get("/")
 def read_root(request: Request):
-    return templates.TemplateResponse(request, "dashboard.html", {"request": request, "page": "dashboard"})
+    user = get_current_user_optional(request)
+    if not user: return RedirectResponse(url="/login")
+    return templates.TemplateResponse(request, "dashboard.html", {"request": request, "page": "dashboard", "user": user})
+
+@app.get("/login")
+def read_login(request: Request):
+    return templates.TemplateResponse(request, "login.html", {"request": request, "page": "login"})
+
+@app.get("/register")
+def read_register(request: Request):
+    return templates.TemplateResponse(request, "register.html", {"request": request, "page": "register"})
+
+@app.get("/account")
+def read_account(request: Request):
+    user = get_current_user_optional(request)
+    if not user: return RedirectResponse(url="/login")
+    return templates.TemplateResponse(request, "account.html", {"request": request, "page": "account", "user": user})
 
 @app.get("/dashboard")
 def read_dashboard(request: Request):
-    return templates.TemplateResponse(request, "dashboard.html", {"request": request, "page": "dashboard"})
+    user = get_current_user_optional(request)
+    if not user: return RedirectResponse(url="/login")
+    return templates.TemplateResponse(request, "dashboard.html", {"request": request, "page": "dashboard", "user": user})
 
 @app.get("/logbook")
 def read_logbook(request: Request):
-    return templates.TemplateResponse(request, "logbook.html", {"request": request, "page": "logbook"})
+    user = get_current_user_optional(request)
+    if not user: return RedirectResponse(url="/login")
+    return templates.TemplateResponse(request, "logbook.html", {"request": request, "page": "logbook", "user": user})
 
 @app.get("/map")
 def read_map(request: Request):
-    return templates.TemplateResponse(request, "map.html", {"request": request, "page": "map"})
+    user = get_current_user_optional(request)
+    if not user: return RedirectResponse(url="/login")
+    return templates.TemplateResponse(request, "map.html", {"request": request, "page": "map", "user": user})
 
 @app.get("/tools")
 def read_tools(request: Request):
-    return templates.TemplateResponse(request, "tools.html", {"request": request, "page": "tools"})
+    user = get_current_user_optional(request)
+    if not user: return RedirectResponse(url="/login")
+    return templates.TemplateResponse(request, "tools.html", {"request": request, "page": "tools", "user": user})
 
 @app.get("/prompt")
-def get_prompt():
+def get_prompt(user: dict = Depends(get_current_user)):
     """Returns the current default prompt used by the AI."""
     return {"prompt": ocr_engine.DEFAULT_PROMPT}
 
 @app.get("/api/models")
-def get_models():
+def get_models(user: dict = Depends(get_current_user)):
     """Returns a list of available Gemini models."""
     return {"models": ocr_engine.get_available_models()}
 
@@ -113,7 +212,8 @@ def get_models():
 async def upload_image(
     file: UploadFile = File(...), 
     custom_prompt: Optional[str] = Form(None),
-    model: Optional[str] = Form("models/gemini-2.0-flash")
+    model: Optional[str] = Form("models/gemini-2.0-flash"),
+    user: dict = Depends(get_current_user)
 ):
     # Read file content to calculate hash
     content = await file.read()
@@ -170,138 +270,135 @@ async def upload_image(
 from typing import List
 
 @app.post("/save_entries/")
-async def save_entries(entries: List[LogEntry]):
-    with Session(engine) as session:
-        saved_entries = []
-        for item in entries:
-            # item is already a LogEntry model because of Pydantic
-            # ensure created_at is set if missing
-            if not item.created_at:
-                item.created_at = datetime.now(timezone.utc)
-            if isinstance(item.date, str):
-                item.date = datetime.strptime(item.date, "%Y-%m-%d").date()
-            session.add(item)
-            saved_entries.append(item)
-        session.commit()
+async def save_entries(entries: List[LogEntry], session: Session = Depends(get_session), user: dict = Depends(get_current_user)):
+    saved_entries = []
+    for item in entries:
+        if not item.created_at:
+            item.created_at = datetime.now(timezone.utc)
+        item.user_id = user["id"]
+        if isinstance(item.date, str):
+            item.date = datetime.strptime(item.date, "%Y-%m-%d").date()
+        session.add(item)
+        saved_entries.append(item)
+    session.commit()
     return {"message": f"Saved {len(saved_entries)} entries"}
 
 @app.get("/entries/", response_model=List[LogEntry])
-async def get_entries():
-    with Session(engine) as session:
-        # Sort by date descending
-        entries = session.exec(select(LogEntry).order_by(LogEntry.date.desc())).all()
-        return entries
+async def get_entries(session: Session = Depends(get_session)):
+    # RLS enforces the user filtering automatically
+    entries = session.exec(select(LogEntry).order_by(LogEntry.date.desc())).all()
+    return entries
 
 @app.delete("/entries/all")
-async def delete_all_entries():
-    with Session(engine) as session:
-        from sqlmodel import delete
-        statement = delete(LogEntry)
-        result = session.exec(statement)
-        session.commit()
-        return {"message": f"Deleted {result.rowcount} entries"}
+async def delete_all_entries(session: Session = Depends(get_session)):
+    from sqlmodel import delete
+    # RLS ensures this only drops the current user's entries
+    statement = delete(LogEntry)
+    result = session.exec(statement)
+    session.commit()
+    return {"message": f"Deleted {result.rowcount} entries"}
 
 @app.delete("/entries/{entry_id}")
-async def delete_entry(entry_id: int):
-    with Session(engine) as session:
-        entry = session.get(LogEntry, entry_id)
-        if not entry:
-            return {"error": "Entry not found"}
-        session.delete(entry)
-        session.commit()
+async def delete_entry(entry_id: int, session: Session = Depends(get_session)):
+    # RLS ensures session.get only returns the row if the user owns it
+    entry = session.get(LogEntry, entry_id)
+    if not entry:
+        return {"error": "Entry not found"}
+    session.delete(entry)
+    session.commit()
     return {"message": "Entry deleted"}
 
 @app.put("/entries/{entry_id}")
-async def update_entry(entry_id: int, entry_data: LogEntry):
-    with Session(engine) as session:
-        db_entry = session.get(LogEntry, entry_id)
-        if not db_entry:
-            return {"error": "Entry not found"}
-        
-        # Update fields
-        entry_data_dict = entry_data.model_dump(exclude_unset=True)
-        for key, value in entry_data_dict.items():
-            if key != "id": # Don't update ID
-                setattr(db_entry, key, value)
-                
-        if isinstance(db_entry.date, str):
-            db_entry.date = datetime.strptime(db_entry.date, "%Y-%m-%d").date()
-        
-        session.add(db_entry)
-        session.commit()
-        session.refresh(db_entry)
-        return db_entry
+async def update_entry(entry_id: int, entry_data: LogEntry, session: Session = Depends(get_session)):
+    # RLS restricts this to rows the user owns
+    db_entry = session.get(LogEntry, entry_id)
+    if not db_entry:
+        return {"error": "Entry not found"}
+    
+    # Update fields
+    entry_data_dict = entry_data.model_dump(exclude_unset=True)
+    for key, value in entry_data_dict.items():
+        if key != "id" and key != "user_id": # Don't update ID or ownership
+            setattr(db_entry, key, value)
+            
+    if isinstance(db_entry.date, str):
+        db_entry.date = datetime.strptime(db_entry.date, "%Y-%m-%d").date()
+    
+    session.add(db_entry)
+    session.commit()
+    session.refresh(db_entry)
+    return db_entry
 
 @app.post("/entries/create")
-async def create_entry(entry: LogEntry):
-    with Session(engine) as session:
-        if not entry.created_at:
-            entry.created_at = datetime.now(timezone.utc)
-        if isinstance(entry.date, str):
-            entry.date = datetime.strptime(entry.date, "%Y-%m-%d").date()
-        session.add(entry)
-        session.commit()
-        session.refresh(entry)
-        return entry
+async def create_entry(entry: LogEntry, session: Session = Depends(get_session), user: dict = Depends(get_current_user)):
+    entry.user_id = user["id"]
+    if not entry.created_at:
+        entry.created_at = datetime.now(timezone.utc)
+    if isinstance(entry.date, str):
+        entry.date = datetime.strptime(entry.date, "%Y-%m-%d").date()
+    session.add(entry)
+    session.commit()
+    session.refresh(entry)
+    return entry
 
 @app.get("/map_data")
-async def get_map_data():
-    with Session(engine) as session:
-         entries = session.exec(select(LogEntry)).all()
-         used_icaos = set()
-         for e in entries:
-             # Sanitize: uppercase, strip
-             if e.departure_place: used_icaos.add(e.departure_place.upper().strip())
-             if e.arrival_place: used_icaos.add(e.arrival_place.upper().strip())
-         
-         data = {}
-         import re
-         
-         def parse_coordinate(coord_str):
-             """
-             Parses coordinate strings like "56.46°N/12.70°E" or "56.46N/12.70E"
-             Returns [lat, lon] or None
-             """
-             try:
-                 # Remove degree symbols and whitespace
-                 clean = coord_str.replace('°', '').strip()
-                 # Regex for "LatN/LonE" format
-                 # Matches: number, N/S, separator, number, E/W
-                 match = re.search(r'([0-9.]+)([NS])[\/\s,]*([0-9.]+)([EW])', clean, re.IGNORECASE)
-                 if match:
-                     lat, lat_dir, lon, lon_dir = match.groups()
-                     lat = float(lat)
-                     lon = float(lon)
-                     if lat_dir.upper() == 'S': lat = -lat
-                     if lon_dir.upper() == 'W': lon = -lon
-                     return [lat, lon]
-                 
-                 # Basic "Lat, Lon" check
-                 if ',' in clean:
-                     parts = clean.split(',')
-                     if len(parts) == 2:
-                         return [float(parts[0]), float(parts[1])]
-             except:
-                 pass
-             return None
+async def get_map_data(session: Session = Depends(get_session)):
+    # RLS restricts table access
+    entries = session.exec(select(LogEntry)).all()
+    used_icaos = set()
+    for e in entries:
+        # Sanitize: uppercase, strip
+        if e.departure_place: used_icaos.add(e.departure_place.upper().strip())
+        if e.arrival_place: used_icaos.add(e.arrival_place.upper().strip())
+    
+    data = {}
+    import re
+    
+    def parse_coordinate(coord_str):
+        """
+        Parses coordinate strings like "56.46°N/12.70°E" or "56.46N/12.70E"
+        Returns [lat, lon] or None
+        """
+        try:
+            # Remove degree symbols and whitespace
+            clean = coord_str.replace('°', '').strip()
+            # Regex for "LatN/LonE" format
+            # Matches: number, N/S, separator, number, E/W
+            match = re.search(r'([0-9.]+)([NS])[\/\s,]*([0-9.]+)([EW])', clean, re.IGNORECASE)
+            if match:
+                lat, lat_dir, lon, lon_dir = match.groups()
+                lat = float(lat)
+                lon = float(lon)
+                if lat_dir.upper() == 'S': lat = -lat
+                if lon_dir.upper() == 'W': lon = -lon
+                return [lat, lon]
+            
+            # Basic "Lat, Lon" check
+            if ',' in clean:
+                parts = clean.split(',')
+                if len(parts) == 2:
+                    return [float(parts[0]), float(parts[1])]
+        except:
+            pass
+        return None
 
-         for code in used_icaos:
-             if code in airports_db:
-                 apt = airports_db[code]
-                 data[code] = {'lat': apt['lat'], 'lon': apt['lon'], 'name': apt.get('name', 'Unknown')}
-             else:
-                 # Try parsing as coordinate
-                 coords = parse_coordinate(code)
-                 if coords:
-                     data[code] = {'lat': coords[0], 'lon': coords[1], 'name': 'GPS Waypoint'}
-                     
-         return data
+    for code in used_icaos:
+        if code in airports_db:
+            apt = airports_db[code]
+            data[code] = {'lat': apt['lat'], 'lon': apt['lon'], 'name': apt.get('name', 'Unknown')}
+        else:
+            # Try parsing as coordinate
+            coords = parse_coordinate(code)
+            if coords:
+                data[code] = {'lat': coords[0], 'lon': coords[1], 'name': 'GPS Waypoint'}
+                
+    return data
 
 import csv
 import io
 
 @app.post("/import/foreflight")
-async def import_foreflight_csv(file: UploadFile = File(...)):
+async def import_foreflight_csv(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
     try:
         content = await file.read()
         

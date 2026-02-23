@@ -11,3 +11,4 @@ pytest-playwright
 airportsdata
 supabase
 psycopg2-binary
+PyJWT

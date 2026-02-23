@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Logbook Scanner Pro - Account{% endblock %}
+
+{% block page_title %}My Account{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div class="account-header"
+        style="display: flex; align-items: center; gap: 24px; margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid var(--border);">
+        <div class="avatar-large"
+            style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), #3a0ca3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 600; color: white;">
+            {{ user.email[0] | upper }}
+        </div>
+        <div>
+            <h2 style="margin: 0; font-size: 1.5rem; color: var(--text);">{{ user.email }}</h2>
+            <p style="margin: 4px 0 0 0; color: var(--text-light);">Pro Pilot Plan</p>
+        </div>
+    </div>
+
+    <div class="account-actions">
+        <h3 style="margin-bottom: 16px; font-size: 1.1rem; color: var(--text);">Account Settings</h3>
+
+        <div class="setting-item"
+            style="display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border);">
+            <div>
+                <div style="font-weight: 500;">Email Address</div>
+                <div style="font-size: 0.9rem; color: var(--text-light);">{{ user.email }}</div>
+            </div>
+        </div>
+
+        <div class="setting-item"
+            style="display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border);">
+            <div>
+                <div style="font-weight: 500;">Data Security</div>
+                <div style="font-size: 0.9rem; color: var(--text-light);">All logbook entries are securely isolated and
+                    encrypted via Supabase.</div>
+            </div>
+            <i class="ri-shield-check-fill" style="color: var(--success); font-size: 1.5rem;"></i>
+        </div>
+
+        <div style="margin-top: 40px;">
+            <button id="logoutBtn" class="btn"
+                style="background: rgba(231, 76, 60, 0.1); color: var(--danger); border: 1px solid rgba(231, 76, 60, 0.2); width: 100%; padding: 12px; border-radius: 12px; font-weight: 500; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
+                <i class="ri-logout-box-line" style="margin-right: 8px;"></i> Sign Out Entirely
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/auth.js"></script>
+{% endblock %}
